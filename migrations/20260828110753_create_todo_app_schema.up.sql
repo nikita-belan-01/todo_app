@@ -1,0 +1,1 @@
+CREATE SCHEMA todo_app;
