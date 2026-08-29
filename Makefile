@@ -10,17 +10,24 @@ MIGRATE_CONTAINER := $(DC) run --rm $(MIGRATE_SERVICE)
 DATABASE_URL       := postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(PG_SERVICE):5432/$(POSTGRES_DB)?sslmode=disable
 MIGRATE            := $(MIGRATE_CONTAINER) -path /migrations -database "$(DATABASE_URL)"
 
-ifneq ($(filter migrate-create,$(firstword $(MAKECMDGOALS))),)
-  MIGRATE_NAME := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
-  $(foreach w,$(MIGRATE_NAME),$(eval $(w):;@:))
-endif
+#ifneq ($(filter migrate-create,$(firstword $(MAKECMDGOALS))),)
+#  MIGRATE_NAME := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
+#  $(foreach w,$(MIGRATE_NAME),$(eval $(w):;@:))
+#endif
+
+#migrate-create:
+#	@if [ -z "$(MIGRATE_NAME)" ]; then \
+#		echo "Usage: make migrate-create <NAME>"; \
+#		exit 1; \
+#	fi
+#	@$(MIGRATE_CONTAINER) create -ext sql -dir /migrations -format 20060102150405 $(MIGRATE_NAME)
 
 migrate-create:
-	@if [ -z "$(MIGRATE_NAME)" ]; then \
-		echo "Usage: make migrate-create <NAME>"; \
+	@if [ -z "$(seq)" ]; then \
+		echo "Usage: make migrate-create seq=<NAME>"; \
 		exit 1; \
 	fi
-	@$(MIGRATE_CONTAINER) create -ext sql -dir /migrations -format 20060102150405 $(MIGRATE_NAME)
+	@$(MIGRATE_CONTAINER) create -ext sql -dir /migrations -format 20060102150405 $(seq)
 
 migrate-up:
 	@$(MIGRATE) -verbose up
