@@ -59,7 +59,7 @@ env-up:
 	@$(DC) up -d $(PG_SERVICE)
 
 env-down:
-	@$(DC) stop $(PG_SERVICE)
+	@$(DC) down $(PG_SERVICE)
 
 env-cleanup:
 	@read -p "Erase the volume? There is a risk of data loss. [y/N]: " ans; \
