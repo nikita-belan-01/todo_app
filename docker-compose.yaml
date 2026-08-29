@@ -2,7 +2,7 @@ services:
   todo-app-postgres:
     image: postgres:18.1-bookworm
     container_name: todo-app-env-postgres
-    restart: always
+    restart: on-failure
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
