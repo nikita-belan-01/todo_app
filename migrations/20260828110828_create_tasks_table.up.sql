@@ -6,7 +6,7 @@ CREATE TABLE todo_app.tasks(
     description TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     completed BOOLEAN NOT NULL DEFAULT FALSE,
-    completed_at TIMESTAMPTZ
+    completed_at TIMESTAMPTZ,
 
     CHECK (
             (completed IS FALSE AND completed_at IS NULL)
