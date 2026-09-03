@@ -1,5 +1,5 @@
 CREATE TABLE todo_app.tasks(
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES todo_app.users(id),
     version BIGINT NOT NULL DEFAULT 1,
     title VARCHAR(100) NOT NULL,

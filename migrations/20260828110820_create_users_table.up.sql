@@ -1,7 +1,5 @@
-CREATE EXTENSION "uuid-ossp";
-
 CREATE table todo_app.users(
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     version BIGINT NOT NULL DEFAULT 1,
     name VARCHAR(100) NOT NULL,
     surname VARCHAR(100) NOT NULL,

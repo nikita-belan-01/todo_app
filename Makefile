@@ -10,6 +10,19 @@ MIGRATE_CONTAINER := $(DC) run --rm $(MIGRATE_SERVICE)
 DATABASE_URL       := postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(PG_SERVICE):5432/$(POSTGRES_DB)?sslmode=disable
 MIGRATE            := $(MIGRATE_CONTAINER) -path /migrations -database "$(DATABASE_URL)"
 
+.PHONY: guard-% check-db-env check-project-root-env \
+		migrate-create migrate-up migrate-down migrate-force-previous \
+		env-up env-down env-cleanup env-port-forward env-port-close
+
+guard-%:
+	@if [ -z '$($(*))' ]; then \
+		echo "Error: required variable $* is not set"; \
+		exit 1; \
+	fi
+
+check-db-env: guard-POSTGRES_USER guard-POSTGRES_PASSWORD guard-POSTGRES_DB
+check-project-root-env: guard-PROJECT_ROOT
+
 #ifneq ($(filter migrate-create,$(firstword $(MAKECMDGOALS))),)
 #  MIGRATE_NAME := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
 #  $(foreach w,$(MIGRATE_NAME),$(eval $(w):;@:))
@@ -22,25 +35,31 @@ MIGRATE            := $(MIGRATE_CONTAINER) -path /migrations -database "$(DATABA
 #	fi
 #	@$(MIGRATE_CONTAINER) create -ext sql -dir /migrations -format 20060102150405 $(MIGRATE_NAME)
 
-migrate-create:
+migrate-create: check-project-root-env
 	@if [ -z "$(seq)" ]; then \
 		echo "Usage: make migrate-create seq=<NAME>"; \
 		exit 1; \
 	fi
 	@$(MIGRATE_CONTAINER) create -ext sql -dir /migrations -format 20060102150405 $(seq)
 
-migrate-up:
+migrate-up: check-project-root-env check-db-env
 	@$(MIGRATE) -verbose up
 
-migrate-down:
+migrate-down: check-project-root-env check-db-env
 	@$(MIGRATE) -verbose down 1
 
-migrate-force-previous:
-	@current=$$($(DC) exec -T $(PG_SERVICE) \
+migrate-force-previous: check-project-root-env check-db-env
+	@row=$$($(DC) exec -T $(PG_SERVICE) \
 		psql "$(DATABASE_URL)" -qtAX \
-		-c "SELECT version FROM schema_migrations LIMIT 1;" | tr -d '[:space:]'); \
+		-c "SELECT version, dirty FROM schema_migrations LIMIT 1;" | tr -d '[:space:]'); \
+	current=$$(echo "$$row" | cut -d'|' -f1); \
+	dirty=$$(echo "$$row" | cut -d'|' -f2); \
 	if [ -z "$$current" ]; then \
 		echo "Error: could not read current migration version (is the DB up?)"; \
+		exit 1; \
+	fi; \
+	if [ "$$dirty" != "t" ]; then \
+		echo "Error: database is not dirty (current version: $$current)\nNothing to force"; \
 		exit 1; \
 	fi; \
 	previous=$$(find $(PROJECT_ROOT)/migrations -name '*.up.sql' \
@@ -51,21 +70,21 @@ migrate-force-previous:
 		echo "Error: no migration older than $$current found"; \
 		exit 1; \
 	fi; \
-	echo "Current migration: $$current"; \
+	echo "Current migration: $$current (dirty)"; \
 	echo "Forcing to: $$previous"; \
 	$(MIGRATE) force "$$previous"
 
-env-up:
+env-up: check-project-root-env check-db-env
 	@$(DC) up -d $(PG_SERVICE)
 
 env-down:
 	@$(DC) down $(PG_SERVICE)
 
-env-cleanup:
-	@read -p "Erase the volume? There is a risk of data loss. [y/N]: " ans; \
+env-cleanup: check-project-root-env
+	@read -p "Erase the volume? There is a risk of data loss [y/N]: " ans; \
 	case "$$ans" in \
 		[yY]) $(DC) rm -sf $(PG_SERVICE) $(FORWARD_SERVICE) && rm -rf $(PROJECT_ROOT)/out/pgdata ;; \
-		*) echo "Aborted." ;; \
+		*) echo "Aborted" ;; \
 	esac
 
 ifneq ($(filter env-port-forward,$(firstword $(MAKECMDGOALS))),)

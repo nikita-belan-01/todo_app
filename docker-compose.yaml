@@ -4,11 +4,11 @@ services:
     container_name: todo-app-env-postgres
     restart: on-failure
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is not set}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is not set}
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is not set}
     volumes:
-      - ${PROJECT_ROOT}/out/pgdata:/var/lib/postgresql
+      - ${PROJECT_ROOT:?PROJECT_ROOT is not set}/out/pgdata:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 30s
@@ -19,8 +19,15 @@ services:
 
   todo-app-postgres-migrate:
     image: migrate/migrate
+    command:
+      - -path
+      - /migrations
+      - -database
+      - postgresql://${POSTGRES_USER:?POSTGRES_USER is not set}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is not set}@todo-app-postgres:5432/${POSTGRES_DB:?POSTGRES_DB is not set}?sslmode=disable
+      - -verbose
+      - up
     volumes:
-      - ${PROJECT_ROOT}/migrations:/migrations
+      - ${PROJECT_ROOT:?PROJECT_ROOT is not set}/migrations:/migrations
     depends_on:
       todo-app-postgres:
         condition: service_healthy
@@ -32,7 +39,7 @@ services:
     container_name: todo-app-env-port-forwarder
     command: tcp-listen:5432,fork,reuseaddr tcp-connect:todo-app-postgres:5432
     ports:
-      - "127.0.0.1:${PORT_FORWARD:-}:5432"
+      - "127.0.0.1:${PORT_FORWARD:-5432}:5432"
     depends_on:
       todo-app-postgres:
         condition: service_healthy
