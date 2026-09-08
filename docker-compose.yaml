@@ -18,7 +18,7 @@ services:
       - todo-app
 
   todo-app-postgres-migrate:
-    image: migrate/migrate
+    image: migrate/migrate:v4.19.1
     command:
       - -path
       - /migrations
@@ -37,9 +37,16 @@ services:
   port-forwarder:
     image: alpine/socat:1.8.0.3
     container_name: todo-app-env-port-forwarder
-    command: tcp-listen:5432,fork,reuseaddr tcp-connect:todo-app-postgres:5432
+    profiles: ["tools"]
+    command: -d -d tcp-listen:5432,fork,reuseaddr tcp-connect:todo-app-postgres:5432
     ports:
       - "127.0.0.1:${PORT_FORWARD:-5432}:5432"
+    healthcheck:
+      test: ["CMD", "socat", "-T2", "/dev/null", "TCP:127.0.0.1:5432"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
     depends_on:
       todo-app-postgres:
         condition: service_healthy

@@ -92,7 +92,7 @@ ifneq ($(filter env-port-forward,$(firstword $(MAKECMDGOALS))),)
   $(foreach w,$(PORT_FORWARD),$(eval $(w):;@:))
 endif
 
-env-port-forward:
+env-port-forward: check-db-env
 	@case "$(PORT_FORWARD)" in \
 		'') echo "Usage: make env-port-forward <PORT>"; exit 1 ;; \
 		*[!0-9]*) echo "Error: '$(PORT_FORWARD)' is not a valid port number"; exit 1 ;; \
@@ -101,7 +101,10 @@ env-port-forward:
 		echo "Error: port must be between 1 and 65535 (got $(PORT_FORWARD))"; \
 		exit 1; \
 	fi
-	@PORT_FORWARD=$(PORT_FORWARD) $(DC) up -d $(FORWARD_SERVICE)
+	@PORT_FORWARD=$(PORT_FORWARD) $(DC) up -d --wait $(FORWARD_SERVICE) || { \
+		echo "Error: port-forwarder failed to become healthy — check 'docker compose logs $(FORWARD_SERVICE)'"; \
+		exit 1; \
+	}
 
 env-port-close:
 	@$(DC) stop $(FORWARD_SERVICE)
