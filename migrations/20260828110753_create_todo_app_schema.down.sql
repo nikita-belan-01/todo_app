@@ -1,1 +1,1 @@
-DROP SCHEMA todo_app CASCADE;
+DROP SCHEMA todo_app;

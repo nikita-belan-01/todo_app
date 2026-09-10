@@ -84,7 +84,7 @@ env-up: check-project-root-env check-postgres-env check-postgres-password
 	@$(DC) up -d $(PG_SERVICE)
 
 env-down:
-	@$(DC) down $(PG_SERVICE)
+	@$(DC) down $(PG_SERVICE) $(FORWARD_SERVICE)
 
 env-cleanup: check-project-root-env
 	@read -p "Erase the volume? There is a risk of data loss [y/N]: " ans; \
