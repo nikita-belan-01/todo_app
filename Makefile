@@ -1,18 +1,21 @@
 include .env
 export
 
-DC             := docker compose
-PG_SERVICE     := todo-app-postgres
+DC              := docker compose
+PG_SERVICE      := todo-app-postgres
 MIGRATE_SERVICE := todo-app-postgres-migrate
 FORWARD_SERVICE := port-forwarder
 
-MIGRATE_CONTAINER := $(DC) run --rm $(MIGRATE_SERVICE)
-DATABASE_URL       := postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(PG_SERVICE):5432/$(POSTGRES_DB)?sslmode=disable
-MIGRATE            := $(MIGRATE_CONTAINER) -path /migrations -database "$(DATABASE_URL)"
+PASSWORD_ENCODER    := $(PROJECT_ROOT)/scripts/encode_db_password.sh
 
-.PHONY: guard-% check-db-env check-project-root-env \
-		migrate-create migrate-up migrate-down migrate-force-previous \
-		env-up env-down env-cleanup env-port-forward env-port-close
+DATABASE_PASSWORD   := $(shell $(PASSWORD_ENCODER) $(POSTGRES_PASSWORD_FILE))
+DATABASE_URL        := postgresql://$(POSTGRES_USER):$(DATABASE_PASSWORD)@$(PG_SERVICE):5432/$(POSTGRES_DB)?sslmode=disable
+
+MIGRATE             := $(DC) run --rm $(MIGRATE_SERVICE)
+
+.PHONY: guard-% check-postgres-env check-project-root-env check-postgres-password \
+        migrate-create migrate-up migrate-down migrate-force-previous \
+        env-up env-down env-cleanup env-port-forward env-port-close
 
 guard-%:
 	@if [ -z '$($(*))' ]; then \
@@ -20,14 +23,14 @@ guard-%:
 		exit 1; \
 	fi
 
-check-db-env: guard-POSTGRES_USER guard-POSTGRES_PASSWORD guard-POSTGRES_DB
+check-postgres-env: guard-POSTGRES_USER guard-POSTGRES_PASSWORD_FILE guard-POSTGRES_DB
+
 check-project-root-env: guard-PROJECT_ROOT
 
 #ifneq ($(filter migrate-create,$(firstword $(MAKECMDGOALS))),)
 #  MIGRATE_NAME := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
 #  $(foreach w,$(MIGRATE_NAME),$(eval $(w):;@:))
 #endif
-
 #migrate-create:
 #	@if [ -z "$(MIGRATE_NAME)" ]; then \
 #		echo "Usage: make migrate-create <NAME>"; \
@@ -35,20 +38,23 @@ check-project-root-env: guard-PROJECT_ROOT
 #	fi
 #	@$(MIGRATE_CONTAINER) create -ext sql -dir /migrations -format 20060102150405 $(MIGRATE_NAME)
 
+check-postgres-password:
+	@$(PASSWORD_ENCODER) $(POSTGRES_PASSWORD_FILE) >/dev/null
+
 migrate-create: check-project-root-env
 	@if [ -z "$(seq)" ]; then \
 		echo "Usage: make migrate-create seq=<NAME>"; \
 		exit 1; \
 	fi
-	@$(MIGRATE_CONTAINER) create -ext sql -dir /migrations -format 20060102150405 $(seq)
+	@$(MIGRATE) create -ext sql -dir /migrations -format 20060102150405 $(seq)
 
-migrate-up: check-project-root-env check-db-env
+migrate-up: check-project-root-env check-postgres-env check-postgres-password
 	@$(MIGRATE) -verbose up
 
-migrate-down: check-project-root-env check-db-env
+migrate-down: check-project-root-env check-postgres-env check-postgres-password
 	@$(MIGRATE) -verbose down 1
 
-migrate-force-previous: check-project-root-env check-db-env
+migrate-force-previous: check-project-root-env check-postgres-env check-postgres-password
 	@row=$$($(DC) exec -T $(PG_SERVICE) \
 		psql "$(DATABASE_URL)" -qtAX \
 		-c "SELECT version, dirty FROM schema_migrations LIMIT 1;" | tr -d '[:space:]'); \
@@ -74,7 +80,7 @@ migrate-force-previous: check-project-root-env check-db-env
 	echo "Forcing to: $$previous"; \
 	$(MIGRATE) force "$$previous"
 
-env-up: check-project-root-env check-db-env
+env-up: check-project-root-env check-postgres-env check-postgres-password
 	@$(DC) up -d $(PG_SERVICE)
 
 env-down:
@@ -92,7 +98,7 @@ ifneq ($(filter env-port-forward,$(firstword $(MAKECMDGOALS))),)
   $(foreach w,$(PORT_FORWARD),$(eval $(w):;@:))
 endif
 
-env-port-forward: check-db-env
+env-port-forward: check-postgres-env
 	@case "$(PORT_FORWARD)" in \
 		'') echo "Usage: make env-port-forward <PORT>"; exit 1 ;; \
 		*[!0-9]*) echo "Error: '$(PORT_FORWARD)' is not a valid port number"; exit 1 ;; \
