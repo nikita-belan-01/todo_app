@@ -1,0 +1,80 @@
+services:
+  todo-app-postgres:
+    image: postgres:18.1-bookworm
+    container_name: todo-app-env-postgres
+    restart: on-failure
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is not set}
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is not set}
+    secrets:
+      - postgres_password
+    volumes:
+      - ${PROJECT_ROOT:?PROJECT_ROOT is not set}/out/pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - todo-app
+
+  todo-app-postgres-migrate:
+    image: migrate/migrate:v4.19.1
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        PASSWORD="$(/scripts/encode_db_password.sh "$${POSTGRES_PASSWORD_FILE}")"
+        DATABASE_URL="postgresql://$${POSTGRES_USER}:$${PASSWORD}@todo-app-postgres:5432/$${POSTGRES_DB}?sslmode=disable"
+        exec migrate \
+          -path /migrations \
+          -database "$${DATABASE_URL}" \
+          "$$@"
+      - migrate
+    command:
+      - -verbose
+      - up
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is not set}
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is not set}
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    secrets:
+      - postgres_password
+    volumes:
+      - ${PROJECT_ROOT:?PROJECT_ROOT is not set}/migrations:/migrations
+      - ./scripts/encode_db_password.sh:/scripts/encode_db_password.sh:ro
+    depends_on:
+      todo-app-postgres:
+        condition: service_healthy
+    networks:
+      - todo-app
+
+  port-forwarder:
+    image: alpine/socat:1.8.0.3
+    container_name: todo-app-env-port-forwarder
+    profiles:
+      - tools
+    command: -d -d tcp-listen:5432,fork,reuseaddr tcp-connect:todo-app-postgres:5432
+    ports:
+      - "127.0.0.1:${PORT_FORWARD:-5432}:5432"
+    healthcheck:
+      test: ["CMD", "socat", "-T2", "/dev/null", "TCP:127.0.0.1:5432"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    depends_on:
+      todo-app-postgres:
+        condition: service_healthy
+    networks:
+      - todo-app
+
+secrets:
+  postgres_password:
+    file: ${POSTGRES_PASSWORD_FILE:?POSTGRES_PASSWORD_FILE is not set}
+
+networks:
+  todo-app:
+    name: todo-app
+    driver: bridge
