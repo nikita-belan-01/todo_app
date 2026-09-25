@@ -19,8 +19,8 @@ func (r UsersRepository) UpdateUser(ctx context.Context, userID uuid.UUID, user 
 				surname = $2,
 				phone_number = $3,
 				version = version + 1
-			WHERE id = $4;`,
-		user.Name, user.Surname, user.PhoneNumber, userID)
+			WHERE id = $4 AND version = $5;`,
+		user.Name, user.Surname, user.PhoneNumber, userID, user.Version)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {

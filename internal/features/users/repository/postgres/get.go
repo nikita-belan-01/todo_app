@@ -48,14 +48,15 @@ func (r UsersRepository) GetUser(ctx context.Context, userID uuid.UUID) (*domain
 
 	if err := r.pool.QueryRow(
 		ctx,
-		`SELECT id, name, surname, phone_number 
+		`SELECT id, name, surname, phone_number, version
 			FROM todo_app.users
 			WHERE id=$1`, userID).
 		Scan(
 			&user.ID,
 			&user.Name,
 			&user.Surname,
-			&user.PhoneNumber); err != nil {
+			&user.PhoneNumber,
+			&user.Version); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.NewNotFoundError("user not found", err)
 		}
