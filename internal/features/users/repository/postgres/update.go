@@ -37,7 +37,7 @@ func (r UsersRepository) UpdateUser(ctx context.Context, userID uuid.UUID, user 
 	}
 
 	if cmd.RowsAffected() == 0 {
-		return domain.NewNotFoundError("user not found", domain.ErrUserNotFound)
+		return domain.NewConflictError("conflict user version", domain.ErrVersionConflict)
 	}
 
 	return nil

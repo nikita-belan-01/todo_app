@@ -9,6 +9,7 @@ var (
 	ErrPhoneNumberAlreadyExists = errors.New("phone number already exists")
 	ErrUserNotFound             = errors.New("user not found")
 	ErrInvalidArgument          = errors.New("invalid argument")
+	ErrVersionConflict          = errors.New("version conflict")
 )
 
 type ClientError struct {
