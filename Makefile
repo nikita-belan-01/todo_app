@@ -114,3 +114,8 @@ env-port-forward: check-postgres-env
 
 env-port-close:
 	@$(DC) stop $(FORWARD_SERVICE)
+
+app-run:
+	@export LOG_DIR=$(PROJECT_ROOT)/out/logs && \
+	go mod tidy && \
+	go run cmd/main.go
