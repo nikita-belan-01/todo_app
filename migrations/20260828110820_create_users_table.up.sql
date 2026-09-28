@@ -3,7 +3,7 @@ CREATE TABLE todo_app.users(
     version BIGINT NOT NULL DEFAULT 1,
     name VARCHAR(100) NOT NULL,
     surname VARCHAR(100) NOT NULL,
-    phone_number VARCHAR(15) NOT NULL,
+    phone_number VARCHAR(15) NOT NULL UNIQUE,
     
     CONSTRAINT users_name_length CHECK(char_length(name) BETWEEN 3 AND 100),
     CONSTRAINT users_surname_length CHECK(char_length(surname) BETWEEN 3 AND 100),
