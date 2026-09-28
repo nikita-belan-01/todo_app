@@ -1,13 +1,9 @@
 package http
 
 import (
-	"errors"
-	"fmt"
-
 	"github.com/google/uuid"
 	"github.com/nikita-belan-01/todo_app/internal/core/delivery/http/types"
 	"github.com/nikita-belan-01/todo_app/internal/core/domain"
-	"github.com/nikita-belan-01/todo_app/pkg/validator"
 )
 
 const userIDPathKey = "userId"
@@ -18,28 +14,11 @@ type createUserRequest struct {
 	PhoneNumber string `json:"phone_number"`
 }
 
-func (r createUserRequest) Validate() error {
-	var errs []error
-	if err := validator.ValidateLen(r.Name, 3, 100); err != nil {
-		errs = append(errs, fmt.Errorf("name: %w", err))
-	}
-
-	if err := validator.ValidateLen(r.Surname, 3, 100); err != nil {
-		errs = append(errs, fmt.Errorf("surname: %w", err))
-	}
-
-	if err := validator.ValidatePhoneNumber(r.PhoneNumber); err != nil {
-		errs = append(errs, err)
-	}
-
-	return errors.Join(errs...)
-}
-
-func BuildDomainUser(name, surname, phoneNumber string) *domain.User {
-	return &domain.User{
-		Name:        name,
-		Surname:     surname,
-		PhoneNumber: phoneNumber,
+func (r createUserRequest) BuildDomain() domain.User {
+	return domain.User{
+		Name:        r.Name,
+		Surname:     r.Surname,
+		PhoneNumber: r.PhoneNumber,
 	}
 }
 
@@ -74,48 +53,10 @@ type patchUserRequest struct {
 	PhoneNumber types.Nullable[string] `json:"phone_number"`
 }
 
-func (r patchUserRequest) Validate() error {
-	var errs []error
-	if r.Name.Set {
-		if r.Name.Value == nil {
-			errs = append(errs, fmt.Errorf("name can't be patched to NULL: %w", domain.ErrInvalidArgument))
-		}
-		if r.Name.Value != nil {
-			if err := validator.ValidateLen(*r.Name.Value, 3, 100); err != nil {
-				errs = append(errs, fmt.Errorf("name: %w", err))
-			}
-		}
-	}
-
-	if r.Surname.Set == true {
-		if r.Surname.Value == nil {
-			errs = append(errs, fmt.Errorf("surname can't be patched to NULL: %w", domain.ErrInvalidArgument))
-		}
-		if r.Surname.Value != nil {
-			if err := validator.ValidateLen(*r.Surname.Value, 3, 100); err != nil {
-				errs = append(errs, fmt.Errorf("surname: %w", err))
-			}
-		}
-	}
-
-	if r.PhoneNumber.Set == true {
-		if r.PhoneNumber.Value == nil {
-			errs = append(errs, fmt.Errorf("phone number can't be patched to NULL: %w", domain.ErrInvalidArgument))
-		}
-		if r.PhoneNumber.Value != nil {
-			if err := validator.ValidatePhoneNumber(*r.PhoneNumber.Value); err != nil {
-				errs = append(errs, err)
-			}
-		}
-	}
-
-	return errors.Join(errs...)
-}
-
-func BuildDomainNullableUser(name, surname, phoneNumber types.Nullable[string]) *domain.UserNullable {
-	return &domain.UserNullable{
-		Name:        name.Nullable,
-		Surname:     surname.Nullable,
-		PhoneNumber: phoneNumber.Nullable,
+func (r patchUserRequest) BuildDomain() domain.UserNullable {
+	return domain.UserNullable{
+		Name:        r.Name.Nullable,
+		Surname:     r.Surname.Nullable,
+		PhoneNumber: r.PhoneNumber.Nullable,
 	}
 }

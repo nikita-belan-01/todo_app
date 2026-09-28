@@ -7,16 +7,13 @@ import (
 	"github.com/nikita-belan-01/todo_app/internal/core/domain"
 )
 
-func DecodeAndValidate[T interface{ Validate() error }](r *http.Request) (T, error) {
-	var req T
+func Decode[T interface{ BuildDomain() DT }, DT any](r *http.Request) (DT, error) {
+	var dto T
+	var zero DT
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		return req, domain.NewBadRequestError("invalid json body request", err)
+	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
+		return zero, domain.NewBadRequestError("invalid json body request", err)
 	}
 
-	if err := req.Validate(); err != nil {
-		return req, domain.NewBadRequestError("validation failed", err)
-	}
-
-	return req, nil
+	return dto.BuildDomain(), nil
 }

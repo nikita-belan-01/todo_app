@@ -27,14 +27,14 @@ func (h UsersHTTPHandler) PatchUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req, err := request.DecodeAndValidate[patchUserRequest](r)
+	req, err := request.Decode[patchUserRequest](r)
 	if err != nil {
 		responseHandler.ErrorResponse(fmt.Errorf("decode and validate patch user request: %w", err))
 		return
 	}
 
 	if err := h.UsersService.PatchUser(
-		ctx, userID, BuildDomainNullableUser(req.Name, req.Surname, req.PhoneNumber)); err != nil {
+		ctx, userID, &req); err != nil {
 		responseHandler.ErrorResponse(fmt.Errorf("patch user: %w", err))
 		return
 	}

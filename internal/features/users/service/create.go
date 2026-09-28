@@ -7,6 +7,10 @@ import (
 )
 
 func (s UsersService) CreateUser(ctx context.Context, user *domain.User) error {
+	if err := user.Validate(); err != nil {
+		return domain.NewBadRequestError("validation user", err)
+	}
+
 	if err := s.usersRepository.CreateUser(ctx, user); err != nil {
 		return err
 	}
