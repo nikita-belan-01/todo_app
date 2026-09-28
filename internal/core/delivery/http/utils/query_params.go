@@ -6,8 +6,10 @@ import (
 )
 
 const (
-	PageQueryKey  = "page"
-	LimitQueryKey = "limit"
+	PageQueryKey      = "page"
+	PageDefaultValue  = 1
+	LimitQueryKey     = "limit"
+	LimitDefaultValue = 10
 )
 
 func GetIntQueryParam(r *http.Request, key string, defaultValue int) int {
@@ -21,9 +23,23 @@ func GetIntQueryParam(r *http.Request, key string, defaultValue int) int {
 		return defaultValue
 	}
 
-	if value == 0 {
-		return defaultValue
+	return value
+}
+
+func GetPageQueryParam(r *http.Request) int {
+	page := GetIntQueryParam(r, PageQueryKey, PageDefaultValue)
+	if page <= 0 {
+		return PageDefaultValue
 	}
 
-	return value
+	return page
+}
+
+func GetLimitQueryParam(r *http.Request) int {
+	limit := GetIntQueryParam(r, PageQueryKey, LimitDefaultValue)
+	if limit <= 0 {
+		return LimitDefaultValue
+	}
+
+	return limit
 }
