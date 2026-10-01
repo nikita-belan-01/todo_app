@@ -27,17 +27,18 @@ func (h UsersHTTPHandler) PatchUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req, err := request.Decode[patchUserRequest](r)
+	patch, err := request.Decode[patchUserRequest](r)
 	if err != nil {
-		responseHandler.ErrorResponse(fmt.Errorf("decode and validate patch user request: %w", err))
+		responseHandler.ErrorResponse(fmt.Errorf("decode patch user request: %w", err))
 		return
 	}
 
-	if err := h.UsersService.PatchUser(
-		ctx, userID, &req); err != nil {
+	version, err := h.UsersService.PatchUser(
+		ctx, userID, &patch)
+	if err != nil {
 		responseHandler.ErrorResponse(fmt.Errorf("patch user: %w", err))
 		return
 	}
 
-	responseHandler.JSONResponse(userIDResponse{ID: userID}, http.StatusOK)
+	responseHandler.JSONResponse(userPatchResponse{ID: userID, Version: version}, http.StatusOK)
 }

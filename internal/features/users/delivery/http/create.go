@@ -19,13 +19,13 @@ func (h UsersHTTPHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 
 	log.Debug("invoke CreateUser handler")
 
-	req, err := request.Decode[createUserRequest](r)
+	user, err := request.Decode[createUserRequest](r)
 	if err != nil {
-		responseHandler.ErrorResponse(fmt.Errorf("decode and validate create user request: %w", err))
+		responseHandler.ErrorResponse(fmt.Errorf("decode create user request: %w", err))
 		return
 	}
 
-	id, err := h.UsersService.CreateUser(ctx, &req)
+	id, err := h.UsersService.CreateUser(ctx, &user)
 	if err != nil {
 		responseHandler.ErrorResponse(fmt.Errorf("create user: %w", err))
 		return

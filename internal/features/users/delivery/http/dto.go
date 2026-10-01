@@ -33,6 +33,11 @@ type userIDResponse struct {
 	ID uuid.UUID `json:"id"`
 }
 
+type userPatchResponse struct {
+	ID      uuid.UUID `json:"id"`
+	Version int       `json:"version"`
+}
+
 func BuildUserResponse(user *domain.User) userResponse {
 	return userResponse{
 		ID:          user.ID,

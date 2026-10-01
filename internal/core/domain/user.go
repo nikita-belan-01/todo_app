@@ -83,7 +83,7 @@ func (u UserNullable) Validate() error {
 	return errors.Join(errs...)
 }
 
-func (u *User) ApplyPatch(patch *UserNullable) bool {
+func (u User) WithPatch(patch *UserNullable) (*User, error) {
 	var changed bool
 
 	if patch.Name.Set && patch.Name.Value != nil && *patch.Name.Value != u.Name {
@@ -101,5 +101,9 @@ func (u *User) ApplyPatch(patch *UserNullable) bool {
 		changed = true
 	}
 
-	return changed
+	if !changed {
+		return nil, ErrNothingToUpdate
+	}
+
+	return &u, nil
 }

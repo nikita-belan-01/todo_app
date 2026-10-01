@@ -8,23 +8,24 @@ import (
 	"github.com/nikita-belan-01/todo_app/internal/core/domain"
 )
 
-func (s UsersService) PatchUser(ctx context.Context, userID uuid.UUID, user *domain.UserNullable) error {
-	if err := user.Validate(); err != nil {
-		return domain.NewBadRequestError("invalid user data", err)
+func (s UsersService) PatchUser(ctx context.Context, userID uuid.UUID, patch *domain.UserNullable) (int, error) {
+	if err := patch.Validate(); err != nil {
+		return 0, domain.NewBadRequestError("invalid user data", err)
 	}
 
 	origUser, err := s.usersRepository.GetUser(ctx, userID)
 	if err != nil {
-		return fmt.Errorf("get user: %w", err)
+		return 0, fmt.Errorf("get user: %w", err)
 	}
 
-	if ok := origUser.ApplyPatch(user); !ok {
-		return domain.NewBadRequestError("nothing to update", domain.ErrNothingToUpdate)
+	patchedUser, err := origUser.WithPatch(patch)
+	if err != nil {
+		return 0, domain.NewBadRequestError("nothing to update", err)
 	}
 
-	if err := s.usersRepository.UpdateUser(ctx, userID, origUser); err != nil {
-		return fmt.Errorf("update user: %w", err)
+	if err := s.usersRepository.UpdateUser(ctx, userID, patchedUser); err != nil {
+		return 0, fmt.Errorf("update user: %w", err)
 	}
 
-	return nil
+	return patchedUser.Version + 1, nil
 }

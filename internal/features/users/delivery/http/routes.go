@@ -21,7 +21,7 @@ type UsersService interface {
 	GetUsers(ctx context.Context, page, limit int) ([]domain.User, error)
 	GetUser(ctx context.Context, userID uuid.UUID) (*domain.User, error)
 	DeleteUser(ctx context.Context, userID uuid.UUID) error
-	PatchUser(ctx context.Context, userID uuid.UUID, user *domain.UserNullable) error
+	PatchUser(ctx context.Context, userID uuid.UUID, patch *domain.UserNullable) (int, error)
 }
 
 func NewUsersHTTPHandler(config *config.Handler, usersService UsersService) *UsersHTTPHandler {
