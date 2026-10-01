@@ -7,7 +7,7 @@ import (
 )
 
 type Task struct {
-	ID          int
+	ID          uuid.UUID
 	UserID      uuid.UUID
 	Version     int
 	Title       string

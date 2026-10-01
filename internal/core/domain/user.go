@@ -3,6 +3,7 @@ package domain
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/nikita-belan-01/todo_app/pkg/validator"
@@ -14,6 +15,7 @@ type User struct {
 	Name        string
 	Surname     string
 	PhoneNumber string
+	CreatedAt   time.Time
 }
 
 func (u User) Validate() error {
@@ -40,6 +42,10 @@ type UserNullable struct {
 }
 
 func (u UserNullable) Validate() error {
+	if !u.Name.Set && !u.Surname.Set && !u.PhoneNumber.Set {
+		return fmt.Errorf("patch must contain at least one field: %w", ErrInvalidArgument)
+	}
+
 	var errs []error
 	if u.Name.Set {
 		if u.Name.Value == nil {
@@ -52,7 +58,7 @@ func (u UserNullable) Validate() error {
 		}
 	}
 
-	if u.Surname.Set == true {
+	if u.Surname.Set {
 		if u.Surname.Value == nil {
 			errs = append(errs, fmt.Errorf("surname can't be patched to NULL: %w", ErrInvalidArgument))
 		}
@@ -63,7 +69,7 @@ func (u UserNullable) Validate() error {
 		}
 	}
 
-	if u.PhoneNumber.Set == true {
+	if u.PhoneNumber.Set {
 		if u.PhoneNumber.Value == nil {
 			errs = append(errs, fmt.Errorf("phone number can't be patched to NULL: %w", ErrInvalidArgument))
 		}
@@ -77,16 +83,23 @@ func (u UserNullable) Validate() error {
 	return errors.Join(errs...)
 }
 
-func (u *User) ApplyPatch(user *UserNullable) {
-	if user.Name.Set && user.Name.Value != nil {
-		u.Name = *user.Name.Value
+func (u *User) ApplyPatch(patch *UserNullable) bool {
+	var changed bool
+
+	if patch.Name.Set && patch.Name.Value != nil && *patch.Name.Value != u.Name {
+		u.Name = *patch.Name.Value
+		changed = true
 	}
 
-	if user.Surname.Set && user.Surname.Value != nil {
-		u.Surname = *user.Surname.Value
+	if patch.Surname.Set && patch.Surname.Value != nil && *patch.Surname.Value != u.Surname {
+		u.Surname = *patch.Surname.Value
+		changed = true
 	}
 
-	if user.PhoneNumber.Set && user.PhoneNumber.Value != nil {
-		u.PhoneNumber = *user.PhoneNumber.Value
+	if patch.PhoneNumber.Set && patch.PhoneNumber.Value != nil && *patch.PhoneNumber.Value != u.PhoneNumber {
+		u.PhoneNumber = *patch.PhoneNumber.Value
+		changed = true
 	}
+
+	return changed
 }

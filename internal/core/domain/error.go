@@ -10,6 +10,7 @@ var (
 	ErrUserNotFound             = errors.New("user not found")
 	ErrInvalidArgument          = errors.New("invalid argument")
 	ErrVersionConflict          = errors.New("version conflict")
+	ErrNothingToUpdate          = errors.New("nothing to update")
 )
 
 type ClientError struct {

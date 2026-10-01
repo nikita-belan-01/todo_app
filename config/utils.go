@@ -11,6 +11,7 @@ var (
 	ErrEmptySecret     = errors.New("empty secret")
 	ErrInvalidPort     = errors.New("parameter must be between 1 and 65535")
 	ErrInvalidDuration = errors.New("invalid duration")
+	ErrInvalidSize     = errors.New("invalid size")
 )
 
 func loadEnv(path string) error {
@@ -33,6 +34,10 @@ func loadEnv(path string) error {
 
 		key = strings.TrimSpace(key)
 		value = strings.TrimSpace(value)
+
+		if _, ok := os.LookupEnv(key); ok {
+			continue
+		}
 
 		if err := os.Setenv(key, value); err != nil {
 			return err
@@ -67,6 +72,14 @@ func validatePort(port int) error {
 func validateDuration(duration time.Duration) error {
 	if duration <= 0 {
 		return ErrInvalidDuration
+	}
+
+	return nil
+}
+
+func validateSize[T int | int64](size T) error {
+	if size <= 0 {
+		return ErrInvalidSize
 	}
 
 	return nil

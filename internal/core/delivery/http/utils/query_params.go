@@ -6,11 +6,19 @@ import (
 )
 
 const (
-	PageQueryKey      = "page"
-	PageDefaultValue  = 1
+	PageQueryKey     = "page"
+	PageDefaultValue = 1
+	PageMaxValue     = 1_000_000
+
 	LimitQueryKey     = "limit"
 	LimitDefaultValue = 10
+	LimitMaxValue     = 100
 )
+
+type Pagination struct {
+	Page  int
+	Limit int
+}
 
 func GetIntQueryParam(r *http.Request, key string, defaultValue int) int {
 	param := r.URL.Query().Get(key)
@@ -26,20 +34,19 @@ func GetIntQueryParam(r *http.Request, key string, defaultValue int) int {
 	return value
 }
 
-func GetPageQueryParam(r *http.Request) int {
+func GetPagination(r *http.Request) Pagination {
 	page := GetIntQueryParam(r, PageQueryKey, PageDefaultValue)
-	if page <= 0 {
-		return PageDefaultValue
+	if page <= 0 || page > PageMaxValue {
+		page = PageDefaultValue
 	}
 
-	return page
-}
-
-func GetLimitQueryParam(r *http.Request) int {
-	limit := GetIntQueryParam(r, PageQueryKey, LimitDefaultValue)
-	if limit <= 0 {
-		return LimitDefaultValue
+	limit := GetIntQueryParam(r, LimitQueryKey, LimitDefaultValue)
+	if limit <= 0 || limit > LimitMaxValue {
+		limit = LimitDefaultValue
 	}
 
-	return limit
+	return Pagination{
+		Page:  page,
+		Limit: limit,
+	}
 }

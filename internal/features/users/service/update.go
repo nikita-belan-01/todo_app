@@ -10,7 +10,7 @@ import (
 
 func (s UsersService) PatchUser(ctx context.Context, userID uuid.UUID, user *domain.UserNullable) error {
 	if err := user.Validate(); err != nil {
-		return domain.NewBadRequestError("validation user", err)
+		return domain.NewBadRequestError("invalid user data", err)
 	}
 
 	origUser, err := s.usersRepository.GetUser(ctx, userID)
@@ -18,7 +18,9 @@ func (s UsersService) PatchUser(ctx context.Context, userID uuid.UUID, user *dom
 		return fmt.Errorf("get user: %w", err)
 	}
 
-	origUser.ApplyPatch(user)
+	if ok := origUser.ApplyPatch(user); !ok {
+		return domain.NewBadRequestError("nothing to update", domain.ErrNothingToUpdate)
+	}
 
 	if err := s.usersRepository.UpdateUser(ctx, userID, origUser); err != nil {
 		return fmt.Errorf("update user: %w", err)

@@ -16,7 +16,13 @@ func (r UsersRepository) GetUsers(ctx context.Context, page, limit int) ([]domai
 
 	rows, err := r.pool.Query(
 		ctx,
-		`SELECT id, name, surname, phone_number FROM todo_app.users
+		`SELECT 
+				id, 
+				name, 
+				surname, 
+				phone_number 
+		FROM todo_app.users
+		ORDER BY created_at, id
 		LIMIT $1
 		OFFSET $2`,
 		limit,
@@ -38,6 +44,10 @@ func (r UsersRepository) GetUsers(ctx context.Context, page, limit int) ([]domai
 			return nil, fmt.Errorf("scan row: %w", err)
 		}
 		users = append(users, user)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate users: %w", err)
 	}
 
 	return users, nil

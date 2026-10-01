@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log"
+	"os"
 	"os/signal"
 	"syscall"
 
@@ -26,52 +28,57 @@ func main() {
 
 	flag.Parse()
 
-	run(configPath)
+	if err := run(configPath); err != nil {
+		log.Printf("fatal: %v", err)
+		os.Exit(1)
+	}
 }
 
-func run(confPath string) {
+func run(configPath string) error {
 	ctx, cancel := signal.NotifyContext(
 		context.Background(),
 		syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
-	conf, err := config.New(confPath)
+	conf, err := config.New(configPath)
 	if err != nil {
-		log.Fatalf("init config: %v", err)
+		return fmt.Errorf("init config: %w", err)
 	}
 
-	logger, err := logger.New(conf.Logger.Dir, conf.Logger.Level)
+	appLogger, err := logger.New(conf.Logger.Dir, conf.Logger.Level)
 	if err != nil {
-		log.Fatalf("init app logger: %v", err)
+		return fmt.Errorf("init app logger: %w", err)
 	}
 	defer func() {
-		if err := logger.Close(); err != nil {
-			log.Fatalf("logger close: %v", err)
+		if err := appLogger.Close(); err != nil {
+			log.Printf("close app logger: %v", err)
 		}
 	}()
 
-	logger.Debug("initializing postgres connection pool")
+	appLogger.Debug("initializing postgres connection pool")
 
 	poolCtx, poolCancel := context.WithTimeout(ctx, conf.Postgres.PingTimeout)
+	defer poolCancel()
+
 	pool, err := pool.NewConnectionPool(poolCtx, &conf.Postgres)
 	if err != nil {
-		logger.Fatal("init postgres pool", zap.Error(err))
+		return fmt.Errorf("init postgres pool: %w", err)
 	}
 	defer pool.Close()
-	poolCancel()
 
-	logger.Debug("initializing features", zap.String("feature", "users"))
+	appLogger.Debug("initializing features", zap.String("feature", "users"))
 
 	usersRepository := users_postgres.NewUsersRepository(pool)
 	usersService := users_service.NewUsersService(usersRepository)
 	usersDeliveryHTTP := users_delivery_http.NewUsersHTTPHandler(&conf.Handler, usersService)
 
-	logger.Debug("initializing HTTP server")
+	appLogger.Debug("initializing HTTP server")
 
-	httpServer := server.New(&conf.HTTPServer, logger,
+	httpServer := server.New(&conf.HTTPServer, appLogger,
 		middleware.RequestID(),
-		middleware.Logger(logger.With(zap.String("component", "middleware"))),
+		middleware.Logger(appLogger.With(zap.String("component", "middleware"))),
 		middleware.Panic(),
+		middleware.BodyLimit(conf.HTTPServer.MaxBodyBytes),
 		middleware.Trace())
 
 	apiVersionRouter := server.NewApiVersionRouter(server.ApiVersion1)
@@ -79,6 +86,8 @@ func run(confPath string) {
 	httpServer.RegisterAPIRouters(apiVersionRouter)
 
 	if err := httpServer.Run(ctx); err != nil {
-		logger.Error("HTTP server run error", zap.Error(err))
+		return fmt.Errorf("run HTTP server: %w", err)
 	}
+
+	return nil
 }

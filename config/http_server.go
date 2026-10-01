@@ -8,7 +8,8 @@ import (
 )
 
 const (
-	defaultMaxHeaderBytes int = 5 << 20
+	defaultMaxHeaderBytes int   = 5 << 20
+	defaultMaxBodyBytes   int64 = 5 << 20
 )
 
 type HTTPServer struct {
@@ -18,6 +19,7 @@ type HTTPServer struct {
 	IdleTimeout     time.Duration
 	ShutdownTimeout time.Duration
 	MaxHeaderBytes  int
+	MaxBodyBytes    int64
 }
 
 func newHTTPServer() (HTTPServer, error) {
@@ -71,12 +73,26 @@ func newHTTPServer() (HTTPServer, error) {
 		return HTTPServer{}, err
 	}
 
+	if err := validateSize(maxHeaderBytes); err != nil {
+		return HTTPServer{}, err
+	}
+
+	maxBodyBytes, err := default_env.GetNumber("HTTP_SERVER_MAX_BODY_BYTES", defaultMaxBodyBytes)
+	if err != nil {
+		return HTTPServer{}, err
+	}
+
+	if err := validateSize(maxBodyBytes); err != nil {
+		return HTTPServer{}, err
+	}
+
 	return HTTPServer{
 		Port:            port,
 		ReadTimeout:     readTimeout,
 		WriteTimeout:    writeTimeout,
+		IdleTimeout:     idleTimeout,
 		ShutdownTimeout: shutdownTimeout,
 		MaxHeaderBytes:  maxHeaderBytes,
-		IdleTimeout:     idleTimeout,
+		MaxBodyBytes:    maxBodyBytes,
 	}, nil
 }

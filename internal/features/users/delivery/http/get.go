@@ -20,10 +20,9 @@ func (h UsersHTTPHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
 
 	log.Debug("invoke GetUsers handler")
 
-	page := utils.GetPageQueryParam(r)
-	limit := utils.GetLimitQueryParam(r)
+	pagination := utils.GetPagination(r)
 
-	data, err := h.UsersService.GetUsers(ctx, page, limit)
+	data, err := h.UsersService.GetUsers(ctx, pagination.Page, pagination.Limit)
 	if err != nil {
 		responseHandler.ErrorResponse(fmt.Errorf("get users: %w", err))
 		return
