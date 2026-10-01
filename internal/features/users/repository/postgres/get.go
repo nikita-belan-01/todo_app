@@ -2,11 +2,11 @@ package postgres
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/nikita-belan-01/todo_app/internal/core/domain"
 	"github.com/nikita-belan-01/todo_app/internal/core/repository/postgres/utils"
 )
@@ -67,7 +67,7 @@ func (r UsersRepository) GetUser(ctx context.Context, userID uuid.UUID) (*domain
 			&user.Surname,
 			&user.PhoneNumber,
 			&user.Version); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, domain.NewNotFoundError("user not found", err)
 		}
 
