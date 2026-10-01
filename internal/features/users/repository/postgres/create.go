@@ -5,33 +5,38 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/nikita-belan-01/todo_app/internal/core/domain"
 )
 
-func (r UsersRepository) CreateUser(ctx context.Context, user *domain.User) error {
-	if _, err := r.pool.Exec(
-		ctx,
-		`INSERT INTO todo_app.users (name, surname, phone_number) 
-		VALUES ($1, $2, $3);`,
-		user.Name, user.Surname, user.PhoneNumber); err != nil {
-
+func (r UsersRepository) CreateUser(ctx context.Context, user *domain.User) (uuid.UUID, error) {
+	var id uuid.UUID
+	if err := r.pool.QueryRow(ctx,
+		`INSERT INTO todo_app.users (
+									name, 
+									surname,
+									phone_number) 
+		VALUES ($1, $2, $3) RETURNING id`,
+		user.Name,
+		user.Surname,
+		user.PhoneNumber).Scan(&id); err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
 			switch pgErr.Code {
 			case pgerrcode.UniqueViolation:
-				return domain.NewConflictError(
+				return uuid.Nil, domain.NewConflictError(
 					"phone number already exists",
 					domain.ErrPhoneNumberAlreadyExists,
 				)
 			case pgerrcode.CheckViolation, pgerrcode.StringDataRightTruncationDataException:
-				return domain.NewBadRequestError("invalid user data", err)
+				return uuid.Nil, domain.NewBadRequestError("invalid user data", err)
 			}
 		}
 
-		return fmt.Errorf("insert user: %w", err)
+		return uuid.Nil, fmt.Errorf("insert user: %w", err)
 	}
 
-	return nil
+	return id, nil
 }

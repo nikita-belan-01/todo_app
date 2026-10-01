@@ -3,17 +3,19 @@ package service
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/nikita-belan-01/todo_app/internal/core/domain"
 )
 
-func (s UsersService) CreateUser(ctx context.Context, user *domain.User) error {
+func (s UsersService) CreateUser(ctx context.Context, user *domain.User) (uuid.UUID, error) {
 	if err := user.Validate(); err != nil {
-		return domain.NewBadRequestError("invalid user data", err)
+		return uuid.Nil, domain.NewBadRequestError("invalid user data", err)
 	}
 
-	if err := s.usersRepository.CreateUser(ctx, user); err != nil {
-		return err
+	id, err := s.usersRepository.CreateUser(ctx, user)
+	if err != nil {
+		return uuid.Nil, err
 	}
 
-	return nil
+	return id, nil
 }

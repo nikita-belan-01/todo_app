@@ -39,5 +39,5 @@ func (h UsersHTTPHandler) PatchUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	responseHandler.JSONResponse(nil, http.StatusOK)
+	responseHandler.JSONResponse(userIDResponse{ID: userID}, http.StatusOK)
 }

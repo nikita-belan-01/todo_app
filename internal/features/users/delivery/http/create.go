@@ -25,10 +25,11 @@ func (h UsersHTTPHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.UsersService.CreateUser(ctx, &req); err != nil {
+	id, err := h.UsersService.CreateUser(ctx, &req)
+	if err != nil {
 		responseHandler.ErrorResponse(fmt.Errorf("create user: %w", err))
 		return
 	}
 
-	responseHandler.JSONResponse(nil, http.StatusCreated)
+	responseHandler.JSONResponse(userIDResponse{ID: id}, http.StatusCreated)
 }

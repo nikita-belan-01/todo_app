@@ -29,6 +29,10 @@ type userResponse struct {
 	PhoneNumber string    `json:"phone_number"`
 }
 
+type userIDResponse struct {
+	ID uuid.UUID `json:"id"`
+}
+
 func BuildUserResponse(user *domain.User) userResponse {
 	return userResponse{
 		ID:          user.ID,
