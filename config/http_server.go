@@ -56,7 +56,7 @@ func newHTTPServer() (HTTPServer, error) {
 	}
 
 	if err = validateDuration(writeTimeout); err != nil {
-		return HTTPServer{}, fmt.Errorf("HTTP_WRITE_READ_TIMEOUT: %w", err)
+		return HTTPServer{}, fmt.Errorf("HTTP_SERVER_WRITE_TIMEOUT: %w", err)
 	}
 
 	shutdownTimeout, err := default_env.GetDuration("HTTP_SERVER_SHUTDOWN_TIMEOUT", 5*time.Second)
