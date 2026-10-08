@@ -43,6 +43,14 @@ func NewNotFoundError(message string, err error) *ClientError {
 	}
 }
 
+func NewRequestEntityTooLargeError(message string, err error) *ClientError {
+	return &ClientError{
+		statusCode: http.StatusRequestEntityTooLarge,
+		message:    message,
+		err:        err,
+	}
+}
+
 func (ce *ClientError) Error() string {
 	return ce.message
 }

@@ -63,12 +63,11 @@ func (h HTTPResponseHandler) ErrorResponse(err error) {
 		msg = "internal server error"
 	}
 
-	switch statusCode {
-	case http.StatusBadRequest:
-		logFunc = h.log.Warn
-	case http.StatusNotFound:
+	switch {
+	case statusCode == http.StatusNotFound:
 		logFunc = h.log.Debug
-	case http.StatusConflict:
+	case statusCode >= http.StatusBadRequest &&
+		statusCode < http.StatusInternalServerError:
 		logFunc = h.log.Warn
 	default:
 		logFunc = h.log.Error

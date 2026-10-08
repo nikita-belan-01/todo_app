@@ -35,7 +35,7 @@ func Decode[T interface{ BuildDomain() DT }, DT any](r *http.Request) (DT, error
 func decodeError(err error) error {
 	var maxBytesErr *http.MaxBytesError
 	if errors.As(err, &maxBytesErr) {
-		return domain.NewBadRequestError(fmt.Sprintf("request body must not exceed %d bytes", maxBytesErr.Limit), err)
+		return domain.NewRequestEntityTooLargeError(fmt.Sprintf("request body must not exceed %d bytes", maxBytesErr.Limit), err)
 	}
 
 	if errors.Is(err, io.EOF) {
