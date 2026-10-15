@@ -76,6 +76,15 @@ func (t Task) Validate() error {
 		}
 	}
 
+	switch {
+	case !t.Completed && t.CompletedAt != nil:
+		errs = append(errs, fmt.Errorf("completed_at must be nil when completed is false: %w", ErrInvalidArgument))
+	case t.Completed && t.CompletedAt == nil:
+		errs = append(errs, fmt.Errorf("completed_at is required when completed is true: %w", ErrInvalidArgument))
+	case t.Completed && t.CompletedAt.Before(t.CreatedAt):
+		errs = append(errs, fmt.Errorf("completed_at can't be earlier than created_at: %w", ErrInvalidArgument))
+	}
+
 	return errors.Join(errs...)
 }
 
@@ -83,11 +92,10 @@ type TaskNullable struct {
 	Title       Nullable[string]
 	Description Nullable[string]
 	Completed   Nullable[bool]
-	CompletedAt Nullable[time.Time]
 }
 
 func (t TaskNullable) Validate() error {
-	if !t.Title.Set && !t.Description.Set && !t.Completed.Set && !t.CompletedAt.Set {
+	if !t.Title.Set && !t.Description.Set && !t.Completed.Set {
 		return fmt.Errorf("patch must contain at least one field: %w", ErrInvalidArgument)
 	}
 
@@ -107,38 +115,7 @@ func (t TaskNullable) Validate() error {
 		}
 	}
 
-	if err := t.validateCompletion(); err != nil {
-		errs = append(errs, err)
-	}
-
 	return errors.Join(errs...)
-}
-
-func (t TaskNullable) validateCompletion() error {
-	if t.Completed.Set != t.CompletedAt.Set {
-		return fmt.Errorf("completed and completed_at must be set together: %w", ErrInvalidArgument)
-	}
-	if !t.Completed.Set {
-		return nil
-	}
-
-	if t.Completed.Value == nil {
-		return fmt.Errorf("completed can't be patched to NULL: %w", ErrInvalidArgument)
-	}
-
-	completed := *t.Completed.Value
-	hasCompletedAt := t.CompletedAt.Value != nil
-
-	switch {
-	case completed && !hasCompletedAt:
-		return fmt.Errorf("completed_at is required when completed is true: %w", ErrInvalidArgument)
-	case !completed && hasCompletedAt:
-		return fmt.Errorf("completed_at must be null when completed is false: %w", ErrInvalidArgument)
-	case completed && t.CompletedAt.Value.After(time.Now()):
-		return fmt.Errorf("completed_at can't be in the future: %w", ErrInvalidArgument)
-	}
-
-	return nil
 }
 
 func (t Task) WithPatch(patch *TaskNullable) (*Task, error) {
@@ -156,16 +133,15 @@ func (t Task) WithPatch(patch *TaskNullable) (*Task, error) {
 
 	if patch.Completed.Set && patch.Completed.Value != nil && *patch.Completed.Value != t.Completed {
 		t.Completed = *patch.Completed.Value
-		changed = true
-	}
 
-	if patch.CompletedAt.Set && !equalTimePtr(patch.CompletedAt.Value, t.CompletedAt) {
-		t.CompletedAt = patch.CompletedAt.Value
-		changed = true
-
-		if t.CompletedAt != nil && !t.CompletedAt.Round(time.Second).After(t.CreatedAt.Round(time.Second)) {
-			return nil, NewAppError(KindInvalidArgument, "completed_at must be later than created_at", ErrInvalidArgument)
+		if t.Completed {
+			now := time.Now()
+			t.CompletedAt = &now
+		} else {
+			t.CompletedAt = nil
 		}
+
+		changed = true
 	}
 
 	if !changed {

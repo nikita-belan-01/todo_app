@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/nikita-belan-01/todo_app/config"
 	"github.com/nikita-belan-01/todo_app/internal/core/delivery/http/middleware"
@@ -94,6 +95,13 @@ func run(configPath string) error {
 	apiVersionRouter.RegisterRoutes(usersDeliveryHTTP.Routes()...)
 	apiVersionRouter.RegisterRoutes(tasksDeliveryHTTP.Routes()...)
 	httpServer.RegisterAPIRouters(apiVersionRouter)
+
+	loc, err := time.LoadLocation(conf.LocalTime)
+	if err != nil {
+		appLogger.Fatal("load location", zap.Error(err))
+	}
+
+	time.Local = loc
 
 	if err := httpServer.Run(ctx); err != nil {
 		return fmt.Errorf("run HTTP server: %w", err)

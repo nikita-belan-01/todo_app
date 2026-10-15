@@ -78,10 +78,9 @@ func buildTasksResponse(tasks []domain.Task) []taskResponse {
 }
 
 type patchTaskRequest struct {
-	Title       types.Nullable[string]    `json:"title"`
-	Description types.Nullable[string]    `json:"description"`
-	Completed   types.Nullable[bool]      `json:"completed"`
-	CompletedAt types.Nullable[time.Time] `json:"completed_at"`
+	Title       types.Nullable[string] `json:"title"`
+	Description types.Nullable[string] `json:"description"`
+	Completed   types.Nullable[bool]   `json:"completed"`
 }
 
 func (r patchTaskRequest) BuildDomain() domain.TaskNullable {
@@ -89,7 +88,6 @@ func (r patchTaskRequest) BuildDomain() domain.TaskNullable {
 		Title:       r.Title.Nullable,
 		Description: r.Description.Nullable,
 		Completed:   r.Completed.Nullable,
-		CompletedAt: r.CompletedAt.Nullable,
 	}
 }
 

@@ -17,7 +17,7 @@ type mapped struct {
 }
 
 var byConstraint = map[string]mapped{
-	"tasks_user_id_fkey":          {domain.KindInvalidArgument, "user not found", domain.ErrUserNotFound},
+	"tasks_user_id_fkey":          {domain.KindNotFound, "user not found", domain.ErrUserNotFound},
 	"users_phone_number_key":      {domain.KindConflict, "phone number already exists", domain.ErrPhoneNumberAlreadyExists},
 	"tasks_title_length":          {domain.KindInvalidArgument, "title must be 3..100 characters", domain.ErrInvalidArgument},
 	"tasks_description_length":    {domain.KindInvalidArgument, "description must be 3..1000 characters", domain.ErrInvalidArgument},
