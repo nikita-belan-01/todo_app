@@ -12,7 +12,7 @@ import (
 )
 
 func (h UsersHTTPHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), h.Config.RequestTimeout)
+	ctx, cancel := context.WithTimeout(r.Context(), h.config.RequestTimeout)
 	defer cancel()
 
 	log := logger.FromContext(ctx)
@@ -22,7 +22,7 @@ func (h UsersHTTPHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
 
 	pagination := utils.GetPagination(r)
 
-	data, err := h.UsersService.GetUsers(ctx, pagination.Page, pagination.Limit)
+	data, err := h.usersService.GetUsers(ctx, pagination.Page, pagination.Limit)
 	if err != nil {
 		responseHandler.ErrorResponse(fmt.Errorf("get users: %w", err))
 		return
@@ -32,7 +32,7 @@ func (h UsersHTTPHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UsersHTTPHandler) GetUser(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), h.Config.RequestTimeout)
+	ctx, cancel := context.WithTimeout(r.Context(), h.config.RequestTimeout)
 	defer cancel()
 
 	log := logger.FromContext(ctx)
@@ -42,11 +42,11 @@ func (h *UsersHTTPHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 
 	userID, err := utils.GetUUIDPathValue(r, userIDPathKey)
 	if err != nil {
-		responseHandler.ErrorResponse(domain.NewBadRequestError("invalid user id", err))
+		responseHandler.ErrorResponse(domain.NewAppError(domain.KindInvalidArgument, "invalid user id", err))
 		return
 	}
 
-	user, err := h.UsersService.GetUser(ctx, userID)
+	user, err := h.usersService.GetUser(ctx, userID)
 	if err != nil {
 		responseHandler.ErrorResponse(fmt.Errorf("get user: %w", err))
 		return

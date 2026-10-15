@@ -1,12 +1,17 @@
 package config
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/nikita-belan-01/todo_app/pkg/default_env"
+)
 
 type Config struct {
 	Logger     Logger
 	HTTPServer HTTPServer
 	Handler    Handler
 	Postgres   Postgres
+	LocalTime  string
 }
 
 func New(confPath string) (*Config, error) {
@@ -34,10 +39,13 @@ func New(confPath string) (*Config, error) {
 		return nil, err
 	}
 
+	localTime := default_env.GetString("LOCAL_TIME", "UTC")
+
 	return &Config{
 		Logger:     logger,
 		HTTPServer: httpServer,
 		Handler:    handler,
 		Postgres:   postgres,
+		LocalTime:  localTime,
 	}, nil
 }

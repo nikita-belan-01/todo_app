@@ -50,8 +50,7 @@ func (u UserNullable) Validate() error {
 	if u.Name.Set {
 		if u.Name.Value == nil {
 			errs = append(errs, fmt.Errorf("name can't be patched to NULL: %w", ErrInvalidArgument))
-		}
-		if u.Name.Value != nil {
+		} else {
 			if err := validator.ValidateLen(*u.Name.Value, 3, 100); err != nil {
 				errs = append(errs, fmt.Errorf("name: %w", err))
 			}
@@ -61,8 +60,7 @@ func (u UserNullable) Validate() error {
 	if u.Surname.Set {
 		if u.Surname.Value == nil {
 			errs = append(errs, fmt.Errorf("surname can't be patched to NULL: %w", ErrInvalidArgument))
-		}
-		if u.Surname.Value != nil {
+		} else {
 			if err := validator.ValidateLen(*u.Surname.Value, 3, 100); err != nil {
 				errs = append(errs, fmt.Errorf("surname: %w", err))
 			}
@@ -72,8 +70,7 @@ func (u UserNullable) Validate() error {
 	if u.PhoneNumber.Set {
 		if u.PhoneNumber.Value == nil {
 			errs = append(errs, fmt.Errorf("phone number can't be patched to NULL: %w", ErrInvalidArgument))
-		}
-		if u.PhoneNumber.Value != nil {
+		} else {
 			if err := validator.ValidatePhoneNumber(*u.PhoneNumber.Value); err != nil {
 				errs = append(errs, err)
 			}
@@ -102,7 +99,7 @@ func (u User) WithPatch(patch *UserNullable) (*User, error) {
 	}
 
 	if !changed {
-		return nil, ErrNothingToUpdate
+		return nil, NewAppError(KindInvalidArgument, "nothing to update", ErrNothingToUpdate)
 	}
 
 	return &u, nil

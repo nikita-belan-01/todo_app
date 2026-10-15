@@ -11,6 +11,8 @@ var (
 	ErrInvalidArgument = errors.New("invalid argument")
 )
 
+var phoneNumberRe = regexp.MustCompile(`^\+[0-9]+$`)
+
 func ValidateLen(s string, min, max int) error {
 	rs := []rune(s)
 	if len(rs) < min || len(rs) > max {
@@ -26,9 +28,7 @@ func ValidatePhoneNumber(phoneNumber string) error {
 		errs = append(errs, fmt.Errorf("phone number: %w", err))
 	}
 
-	re := regexp.MustCompile(`^\+[0-9]+$`)
-
-	if !re.MatchString(phoneNumber) {
+	if !phoneNumberRe.MatchString(phoneNumber) {
 		errs = append(errs, fmt.Errorf("phone number: invalid format: %w", ErrInvalidArgument))
 	}
 
