@@ -27,6 +27,7 @@ type userResponse struct {
 	Name        string    `json:"name"`
 	Surname     string    `json:"surname"`
 	PhoneNumber string    `json:"phone_number"`
+	Version     int       `json:"version"`
 }
 
 type userIDResponse struct {
@@ -44,6 +45,7 @@ func BuildUserResponse(user *domain.User) userResponse {
 		Name:        user.Name,
 		Surname:     user.Surname,
 		PhoneNumber: user.PhoneNumber,
+		Version:     user.Version,
 	}
 }
 

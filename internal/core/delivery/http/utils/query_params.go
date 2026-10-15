@@ -3,16 +3,13 @@ package utils
 import (
 	"net/http"
 	"strconv"
+
+	"github.com/nikita-belan-01/todo_app/internal/core/domain"
 )
 
 const (
-	PageQueryKey     = "page"
-	PageDefaultValue = 1
-	PageMaxValue     = 1_000_000
-
-	LimitQueryKey     = "limit"
-	LimitDefaultValue = 10
-	LimitMaxValue     = 100
+	pageQueryKey  = "page"
+	limitQueryKey = "limit"
 )
 
 type Pagination struct {
@@ -35,14 +32,14 @@ func GetIntQueryParam(r *http.Request, key string, defaultValue int) int {
 }
 
 func GetPagination(r *http.Request) Pagination {
-	page := GetIntQueryParam(r, PageQueryKey, PageDefaultValue)
-	if page <= 0 || page > PageMaxValue {
-		page = PageDefaultValue
+	page := GetIntQueryParam(r, pageQueryKey, domain.PageDefaultValue)
+	if page <= 0 || page > domain.PageMaxValue {
+		page = domain.PageDefaultValue
 	}
 
-	limit := GetIntQueryParam(r, LimitQueryKey, LimitDefaultValue)
-	if limit <= 0 || limit > LimitMaxValue {
-		limit = LimitDefaultValue
+	limit := GetIntQueryParam(r, limitQueryKey, domain.LimitDefaultValue)
+	if limit <= 0 || limit > domain.LimitMaxValue {
+		limit = domain.LimitDefaultValue
 	}
 
 	return Pagination{

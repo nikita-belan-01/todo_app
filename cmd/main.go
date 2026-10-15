@@ -13,6 +13,9 @@ import (
 	"github.com/nikita-belan-01/todo_app/internal/core/delivery/http/middleware"
 	"github.com/nikita-belan-01/todo_app/internal/core/delivery/http/server"
 	"github.com/nikita-belan-01/todo_app/internal/core/repository/postgres/pool"
+	tasks_delivery_http "github.com/nikita-belan-01/todo_app/internal/features/tasks/delivery/http"
+	tasks_postgres "github.com/nikita-belan-01/todo_app/internal/features/tasks/repository/postgres"
+	tasks_service "github.com/nikita-belan-01/todo_app/internal/features/tasks/service"
 	users_delivery_http "github.com/nikita-belan-01/todo_app/internal/features/users/delivery/http"
 	users_postgres "github.com/nikita-belan-01/todo_app/internal/features/users/repository/postgres"
 	users_service "github.com/nikita-belan-01/todo_app/internal/features/users/service"
@@ -72,6 +75,12 @@ func run(configPath string) error {
 	usersService := users_service.NewUsersService(usersRepository)
 	usersDeliveryHTTP := users_delivery_http.NewUsersHTTPHandler(&conf.Handler, usersService)
 
+	appLogger.Debug("initializing features", zap.String("feature", "tasks"))
+
+	tasksRepository := tasks_postgres.NewTasksRepository(pool)
+	tasksService := tasks_service.NewTasksService(tasksRepository)
+	tasksDeliveryHTTP := tasks_delivery_http.NewTasksHTTPHandler(&conf.Handler, tasksService)
+
 	appLogger.Debug("initializing HTTP server")
 
 	httpServer := server.New(&conf.HTTPServer, appLogger,
@@ -83,6 +92,7 @@ func run(configPath string) error {
 
 	apiVersionRouter := server.NewApiVersionRouter(server.ApiVersion1)
 	apiVersionRouter.RegisterRoutes(usersDeliveryHTTP.Routes()...)
+	apiVersionRouter.RegisterRoutes(tasksDeliveryHTTP.Routes()...)
 	httpServer.RegisterAPIRouters(apiVersionRouter)
 
 	if err := httpServer.Run(ctx); err != nil {

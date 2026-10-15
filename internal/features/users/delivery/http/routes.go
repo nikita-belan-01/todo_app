@@ -12,8 +12,8 @@ import (
 )
 
 type UsersHTTPHandler struct {
-	Config       *config.Handler
-	UsersService UsersService
+	config       *config.Handler
+	usersService UsersService
 }
 
 type UsersService interface {
@@ -26,8 +26,8 @@ type UsersService interface {
 
 func NewUsersHTTPHandler(config *config.Handler, usersService UsersService) *UsersHTTPHandler {
 	return &UsersHTTPHandler{
-		Config:       config,
-		UsersService: usersService,
+		config:       config,
+		usersService: usersService,
 	}
 }
 

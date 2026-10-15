@@ -77,6 +77,14 @@ func Trace() Middleware {
 				zap.Time("time", before.UTC()))
 
 			next.ServeHTTP(rw, r)
+			if err := r.Context().Err(); err != nil && !rw.Written() {
+				log.Debug(
+					"<<< HTTP request aborted",
+					zap.Error(err),
+					zap.Duration("latency", time.Since(before)))
+
+				return
+			}
 
 			log.Debug(
 				"<<< done HTTP request",

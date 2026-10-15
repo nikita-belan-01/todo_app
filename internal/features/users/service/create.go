@@ -9,7 +9,7 @@ import (
 
 func (s UsersService) CreateUser(ctx context.Context, user *domain.User) (uuid.UUID, error) {
 	if err := user.Validate(); err != nil {
-		return uuid.Nil, domain.NewBadRequestError("invalid user data", err)
+		return uuid.Nil, domain.NewAppError(domain.KindInvalidArgument, "invalid data", err)
 	}
 
 	id, err := s.usersRepository.CreateUser(ctx, user)

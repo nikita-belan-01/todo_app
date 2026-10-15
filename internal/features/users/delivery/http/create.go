@@ -11,7 +11,7 @@ import (
 )
 
 func (h UsersHTTPHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), h.Config.RequestTimeout)
+	ctx, cancel := context.WithTimeout(r.Context(), h.config.RequestTimeout)
 	defer cancel()
 
 	log := logger.FromContext(ctx)
@@ -25,7 +25,7 @@ func (h UsersHTTPHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := h.UsersService.CreateUser(ctx, &user)
+	id, err := h.usersService.CreateUser(ctx, &user)
 	if err != nil {
 		responseHandler.ErrorResponse(fmt.Errorf("create user: %w", err))
 		return
