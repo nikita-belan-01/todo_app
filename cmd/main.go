@@ -23,8 +23,8 @@ import (
 func main() {
 	var configPath string
 
-	flag.StringVar(&configPath, "config", ".env", "config file path")
-	flag.StringVar(&configPath, "c", ".env", "config file path")
+	flag.StringVar(&configPath, "config", "", "config file path")
+	flag.StringVar(&configPath, "c", "", "config file path")
 
 	flag.Parse()
 
