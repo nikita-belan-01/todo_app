@@ -16,7 +16,7 @@ MIGRATE				:= $(DC) run --rm $(MIGRATE_SERVICE)
 
 .PHONY: guard-% check-postgres-env check-project-root-env check-postgres-password \
         migrate-create migrate-up migrate-down migrate-force-previous \
-		env-up env-down env-cleanup env-port-forward env-port-close \
+		env-up env-stop env-cleanup env-port-forward env-port-close \
 		app-run app-deploy app-logs ps
 
 guard-%:
@@ -85,8 +85,8 @@ migrate-force-previous: check-project-root-env check-postgres-env check-postgres
 env-up: check-project-root-env check-postgres-env check-postgres-password
 	@$(DC) up -d $(PG_SERVICE)
 
-env-down:
-	@$(DC) down $(PG_SERVICE) $(FORWARD_SERVICE)
+env-stop:
+	@$(DC) stop $(PG_SERVICE) $(FORWARD_SERVICE)
 
 env-cleanup: check-project-root-env
 	@read -p "Erase the volume? There is a risk of data loss [y/N]: " ans; \
@@ -122,7 +122,8 @@ app-run:
 	go mod tidy && \
 	go run cmd/main.go -c .env
 
-app-deploy:
+app-deploy: check-project-root-env
+	@mkdir -p $(PROJECT_ROOT)/out/logs
 	@docker compose up -d --build $(SERVER)
 
 app-logs:
