@@ -117,14 +117,13 @@ env-port-forward: check-postgres-env
 env-port-close:
 	@$(DC) stop $(FORWARD_SERVICE)
 
-app-run:
+app-run: check-project-root-env
 	@export LOG_DIR=$(PROJECT_ROOT)/out/logs && \
 	go mod tidy && \
 	go run cmd/main.go -c .env
 
-app-deploy: check-project-root-env
-	@mkdir -p $(PROJECT_ROOT)/out/logs
-	@docker compose up -d --build $(SERVER)
+app-deploy: check-project-root-env check-postgres-env check-postgres-password
+		@docker compose up -d --build --wait $(SERVER)
 
 app-logs:
 	@docker compose logs -f $(SERVER)

@@ -7,8 +7,8 @@ RUN CGO_ENABLED=0 go build -o /app/bin/todo_app /app/cmd/main.go
 
 FROM alpine:3.24 AS runner
 RUN adduser -D -u 10001 app && mkdir -p /app/out/logs && chown -R app:app /app
+RUN apk add --no-cache tzdata
 WORKDIR /app
 COPY --from=builder --chown=app:app /app/bin/todo_app /app
 USER app
-ENV PROJECT_ROOT=/app
 CMD ["/app/todo_app"]

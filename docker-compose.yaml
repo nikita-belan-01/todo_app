@@ -25,9 +25,15 @@ services:
     ports:
       - ${HTTP_SERVER_PORT:?HTTP_SERVER_PORT is not set}:8080
     volumes:
-      - ${PROJECT_ROOT:?PROJECT_ROOT is not set}/out/logs:/app/out/logs
+      - todo-app-logs:/app/out/logs
     secrets:
       - postgres_password
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/ready >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
     depends_on:
       todo-app-postgres:
         condition: service_healthy
@@ -35,7 +41,8 @@ services:
         condition: service_completed_successfully
     networks:
       - todo-app
-    restart: on-failure
+    restart: unless-stopped
+
   todo-app-postgres:
     image: postgres:18.1-bookworm
     container_name: todo-app-env-postgres
@@ -53,6 +60,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
+      start_period: 10s
     networks:
       - todo-app
 
@@ -106,6 +114,9 @@ services:
         condition: service_healthy
     networks:
       - todo-app
+
+volumes:
+  todo-app-logs:
 
 secrets:
   postgres_password:
