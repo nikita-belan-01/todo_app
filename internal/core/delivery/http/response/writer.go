@@ -36,3 +36,7 @@ func (rw *ResponseWriter) GetStatusCodeOrPanic() int {
 
 	return rw.statusCode
 }
+
+func (rw *ResponseWriter) Written() bool {
+	return rw.statusCode != statusCodeUninitialized
+}

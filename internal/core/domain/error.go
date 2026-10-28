@@ -2,63 +2,74 @@ package domain
 
 import (
 	"errors"
-	"net/http"
+	"fmt"
+	"strings"
 )
 
 var (
 	ErrPhoneNumberAlreadyExists = errors.New("phone number already exists")
 	ErrUserNotFound             = errors.New("user not found")
+	ErrTaskNotFound             = errors.New("task not found")
 	ErrInvalidArgument          = errors.New("invalid argument")
 	ErrVersionConflict          = errors.New("version conflict")
-	ErrNothingToUpdate          = errors.New("nothing to update")
+	ErrUserIDIsNull             = errors.New("user id is null")
+	ErrTooManyUserIDs           = errors.New("too many user ids")
+	ErrEmptyUserIDs             = errors.New("user ids is empty")
+	ErrNullNotAllowed           = errors.New("null is not allowed")
+	ErrTaskCompleted            = errors.New("task completed")
 )
 
-type ClientError struct {
-	statusCode int
-	message    string
-	err        error
+type Kind int
+
+const (
+	KindInternal Kind = iota
+	KindUnavailable
+	KindNotFound
+	KindInvalidArgument
+	KindConflict
+	KindTooLarge
+)
+
+type AppError struct {
+	kind    Kind
+	message string
+	err     error
 }
 
-func NewBadRequestError(message string, err error) *ClientError {
-	return &ClientError{
-		statusCode: http.StatusBadRequest,
-		message:    message,
-		err:        err,
+func (ce *AppError) Error() string {
+	if ce.err == nil {
+		return ce.message
 	}
-}
 
-func NewConflictError(message string, err error) *ClientError {
-	return &ClientError{
-		statusCode: http.StatusConflict,
-		message:    message,
-		err:        err,
+	cause := ce.err.Error()
+	if cause == ce.message {
+		return ce.message
 	}
-}
 
-func NewNotFoundError(message string, err error) *ClientError {
-	return &ClientError{
-		statusCode: http.StatusNotFound,
-		message:    message,
-		err:        err,
+	if rest, ok := strings.CutPrefix(cause, fmt.Sprintf("%s: ", ce.message)); ok {
+		cause = rest
 	}
+
+	return fmt.Sprintf("%s: %s", ce.message, cause)
 }
 
-func NewRequestEntityTooLargeError(message string, err error) *ClientError {
-	return &ClientError{
-		statusCode: http.StatusRequestEntityTooLarge,
-		message:    message,
-		err:        err,
-	}
-}
-
-func (ce *ClientError) Error() string {
-	return ce.message
-}
-
-func (ce *ClientError) Unwrap() error {
+func (ce *AppError) Unwrap() error {
 	return ce.err
 }
 
-func (ce *ClientError) StatusCode() int {
-	return ce.statusCode
+func (ce *AppError) Message() string {
+	return ce.message
+}
+
+func NewAppError(kind Kind, message string, err error) *AppError {
+	return &AppError{kind: kind, message: message, err: err}
+}
+
+func KindOf(err error) Kind {
+	var e *AppError
+	if errors.As(err, &e) {
+		return e.kind
+	}
+
+	return KindInternal
 }

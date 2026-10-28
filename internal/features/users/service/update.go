@@ -10,22 +10,23 @@ import (
 
 func (s UsersService) PatchUser(ctx context.Context, userID uuid.UUID, patch *domain.UserNullable) (int, error) {
 	if err := patch.Validate(); err != nil {
-		return 0, domain.NewBadRequestError("invalid user data", err)
+		return 0, fmt.Errorf("validate: %w", err)
 	}
 
 	origUser, err := s.usersRepository.GetUser(ctx, userID)
 	if err != nil {
-		return 0, fmt.Errorf("get user: %w", err)
+		return 0, fmt.Errorf("get: %w", err)
 	}
 
-	patchedUser, err := origUser.WithPatch(patch)
+	patchedUser, changed := origUser.WithPatch(patch)
+	if !changed {
+		return origUser.Version, nil
+	}
+
+	newVersion, err := s.usersRepository.UpdateUser(ctx, patchedUser)
 	if err != nil {
-		return 0, domain.NewBadRequestError("nothing to update", err)
+		return 0, fmt.Errorf("update: %w", err)
 	}
 
-	if err := s.usersRepository.UpdateUser(ctx, userID, patchedUser); err != nil {
-		return 0, fmt.Errorf("update user: %w", err)
-	}
-
-	return patchedUser.Version + 1, nil
+	return newVersion, nil
 }

@@ -15,8 +15,8 @@ type UsersRepository interface {
 	CreateUser(ctx context.Context, user *domain.User) (uuid.UUID, error)
 	GetUsers(ctx context.Context, page, limit int) ([]domain.User, error)
 	GetUser(ctx context.Context, userID uuid.UUID) (*domain.User, error)
+	UpdateUser(ctx context.Context, user *domain.User) (int, error)
 	DeleteUser(ctx context.Context, userID uuid.UUID) error
-	UpdateUser(ctx context.Context, userID uuid.UUID, user *domain.User) error
 }
 
 func NewUsersService(usersRepository UsersRepository) *UsersService {
