@@ -14,7 +14,7 @@ import (
 const unknownFieldPrefix = "json: unknown field"
 
 func Decode[T interface{ BuildDomain() DT }, DT any](r *http.Request) (DT, error) {
-	var dto T
+	var dto *T
 	var zero DT
 
 	dec := json.NewDecoder(r.Body)
@@ -22,6 +22,10 @@ func Decode[T interface{ BuildDomain() DT }, DT any](r *http.Request) (DT, error
 
 	if err := dec.Decode(&dto); err != nil {
 		return zero, decodeError(err)
+	}
+
+	if dto == nil {
+		return zero, domain.NewAppError(domain.KindInvalidArgument, "request body must be a json object", nil)
 	}
 
 	var extra json.RawMessage
@@ -32,7 +36,7 @@ func Decode[T interface{ BuildDomain() DT }, DT any](r *http.Request) (DT, error
 		return zero, decodeError(err)
 	}
 
-	return dto.BuildDomain(), nil
+	return (*dto).BuildDomain(), nil
 }
 
 func decodeError(err error) error {
@@ -51,6 +55,12 @@ func decodeError(err error) error {
 
 	var typeErr *json.UnmarshalTypeError
 	if errors.As(err, &typeErr) {
+		if typeErr.Field == "" {
+			return domain.NewAppError(
+				domain.KindInvalidArgument,
+				fmt.Sprintf("request body must be a json object, got %s", typeErr.Value),
+				err)
+		}
 		return domain.NewAppError(
 			domain.KindInvalidArgument,
 			fmt.Sprintf("field %q: expected %s, got %s", typeErr.Field, typeErr.Type, typeErr.Value), err)
@@ -69,5 +79,6 @@ func decodeError(err error) error {
 			fmt.Sprintf("unknown field %s", strings.TrimSpace(field)), err)
 	}
 
-	return domain.NewAppError(domain.KindInvalidArgument, "invalid json body request", err)
+	return domain.NewAppError(domain.KindInvalidArgument,
+		fmt.Sprintf("malformed value in request body: %s", err), err)
 }

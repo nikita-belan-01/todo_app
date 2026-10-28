@@ -31,16 +31,24 @@ func GetIntQueryParam(r *http.Request, key string, defaultValue int) int {
 	return value
 }
 
-func GetPagination(r *http.Request) Pagination {
-	page := GetIntQueryParam(r, pageQueryKey, domain.PageDefaultValue)
-	if page <= 0 || page > domain.PageMaxValue {
-		page = domain.PageDefaultValue
+func GetNullBoolQueryParam(r *http.Request, key string, defaultValue *bool) *bool {
+	param := r.URL.Query().Get(key)
+	if param == "" {
+		return defaultValue
 	}
 
-	limit := GetIntQueryParam(r, limitQueryKey, domain.LimitDefaultValue)
-	if limit <= 0 || limit > domain.LimitMaxValue {
-		limit = domain.LimitDefaultValue
+	value, err := strconv.ParseBool(param)
+	if err != nil {
+		return defaultValue
 	}
+
+	return &value
+}
+
+func GetPagination(r *http.Request) Pagination {
+	page, limit := domain.ClampPagination(
+		GetIntQueryParam(r, pageQueryKey, domain.PageDefaultValue),
+		GetIntQueryParam(r, limitQueryKey, domain.LimitDefaultValue))
 
 	return Pagination{
 		Page:  page,

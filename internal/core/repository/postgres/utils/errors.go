@@ -30,7 +30,7 @@ var byConstraint = map[string]mapped{
 var byCode = map[string]mapped{
 	pgerrcode.UniqueViolation:                        {domain.KindConflict, "already exists", nil},
 	pgerrcode.ForeignKeyViolation:                    {domain.KindInvalidArgument, "referenced entity not found", nil},
-	pgerrcode.CheckViolation:                         {domain.KindInvalidArgument, "invalid data", nil},
+	pgerrcode.CheckViolation:                         {domain.KindInvalidArgument, "request violates a data constraint", nil},
 	pgerrcode.NotNullViolation:                       {domain.KindInvalidArgument, "required field is missing", nil},
 	pgerrcode.StringDataRightTruncationDataException: {domain.KindInvalidArgument, "value is too long", nil},
 	pgerrcode.QueryCanceled:                          {domain.KindUnavailable, "request timed out", nil},

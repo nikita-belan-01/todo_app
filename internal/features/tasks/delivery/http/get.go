@@ -12,6 +12,8 @@ import (
 	"github.com/nikita-belan-01/todo_app/pkg/logger"
 )
 
+const isCompletedKey = "is_completed"
+
 func (h TasksHTTPHandler) SearchTasks(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), h.config.RequestTimeout)
 	defer cancel()
@@ -26,6 +28,12 @@ func (h TasksHTTPHandler) SearchTasks(w http.ResponseWriter, r *http.Request) {
 		responseHandler.ErrorResponse(fmt.Errorf("decode search tasks request: %w", err))
 		return
 	}
+
+	pagination := utils.GetPagination(r)
+
+	tasksFilter.Limit = pagination.Limit
+	tasksFilter.Page = pagination.Page
+	tasksFilter.IsCompleted = utils.GetNullBoolQueryParam(r, isCompletedKey, nil)
 
 	tasks, err := h.tasksService.SearchTasks(ctx, &tasksFilter)
 	if err != nil {

@@ -1,8 +1,6 @@
 package domain
 
 import (
-	"errors"
-	"fmt"
 	"slices"
 	"time"
 
@@ -29,63 +27,47 @@ type TasksFilter struct {
 }
 
 func (tf *TasksFilter) Validate() error {
-	var errs []error
+	var v Validation
 
 	if tf.UserIDs != nil {
 		switch {
 		case len(tf.UserIDs) == 0:
-			errs = append(errs, ErrEmptyUserIDs)
+			v.Addc("user_ids", ErrEmptyUserIDs, "must not be empty")
 		case len(tf.UserIDs) > UserIDsMaxCount:
-			errs = append(errs, fmt.Errorf("%w: got %d max %d", ErrTooManyUserIDs, len(tf.UserIDs), UserIDsMaxCount))
+			v.Addc("user_ids", ErrTooManyUserIDs, "must contain at most %d ids, got %d", UserIDsMaxCount, len(tf.UserIDs))
 		}
 
 		if slices.Contains(tf.UserIDs, uuid.Nil) {
-			errs = append(errs, ErrUserIDIsNull)
+			v.Addc("user_ids", ErrUserIDIsNull, "must not contain an empty id")
 		}
 	}
 
-	err := errors.Join(errs...)
-	if err != nil {
-		return err
-	}
-
-	if tf.Page <= 0 || tf.Page > PageMaxValue {
-		tf.Page = PageDefaultValue
-	}
-
-	if tf.Limit <= 0 || tf.Limit > LimitMaxValue {
-		tf.Limit = LimitDefaultValue
-	}
-
-	return nil
+	return v.Err()
 }
 
 func (t Task) Validate() error {
-	var errs []error
+	var v Validation
+
 	if t.UserID == uuid.Nil {
-		errs = append(errs, ErrUserIDIsNull)
+		v.Addc("user_id", ErrUserIDIsNull, "must not be empty")
 	}
 
-	if err := validator.ValidateLen(t.Title, 3, 100); err != nil {
-		errs = append(errs, fmt.Errorf("title: %w", err))
-	}
+	v.Add("title", validator.ValidateLen(t.Title, TitleMinLen, TitleMaxLen))
 
 	if t.Description != nil {
-		if err := validator.ValidateLen(*t.Description, 3, 1000); err != nil {
-			errs = append(errs, fmt.Errorf("description(not null): %w", err))
-		}
+		v.Add("description", validator.ValidateLen(*t.Description, DescriptionMinLen, DescriptionMaxLen))
 	}
 
 	switch {
 	case !t.Completed && t.CompletedAt != nil:
-		errs = append(errs, fmt.Errorf("completed_at must be nil when completed is false: %w", ErrInvalidArgument))
+		v.Addf("completed_at", "must be null when completed is false")
 	case t.Completed && t.CompletedAt == nil:
-		errs = append(errs, fmt.Errorf("completed_at is required when completed is true: %w", ErrInvalidArgument))
+		v.Addf("completed_at", "is required when completed is true")
 	case t.Completed && t.CompletedAt.Before(t.CreatedAt):
-		errs = append(errs, fmt.Errorf("completed_at can't be earlier than created_at: %w", ErrInvalidArgument))
+		v.Addf("completed_at", "must not be earlier than created_at")
 	}
 
-	return errors.Join(errs...)
+	return v.Err()
 }
 
 type TaskNullable struct {
@@ -95,58 +77,36 @@ type TaskNullable struct {
 }
 
 func (t TaskNullable) Validate() error {
+	var v Validation
+
 	if !t.Title.Set && !t.Description.Set && !t.Completed.Set {
-		return fmt.Errorf("patch must contain at least one field: %w", ErrInvalidArgument)
+		v.Addf("", "patch must contain at least one field")
+		return v.Err()
 	}
 
-	var errs []error
+	v.AddNullableLen("title", t.Title, TitleMinLen, TitleMaxLen)
+	v.AddOptionalLen("description", t.Description, DescriptionMinLen, DescriptionMaxLen)
+	v.AddNullableBool("completed", t.Completed)
 
-	if t.Title.Set {
-		if t.Title.Value == nil {
-			errs = append(errs, fmt.Errorf("title can't be patched to NULL: %w", ErrInvalidArgument))
-		} else if err := validator.ValidateLen(*t.Title.Value, 3, 100); err != nil {
-			errs = append(errs, fmt.Errorf("title: %w", err))
-		}
-	}
-
-	if t.Description.Set && t.Description.Value != nil {
-		if err := validator.ValidateLen(*t.Description.Value, 3, 1000); err != nil {
-			errs = append(errs, fmt.Errorf("description: %w", err))
-		}
-	}
-
-	return errors.Join(errs...)
+	return v.Err()
 }
 
-func (t Task) WithPatch(patch *TaskNullable) (*Task, error) {
-	var changed bool
+func (t Task) WithPatch(patch *TaskNullable) (*Task, bool) {
+	changed := applyNotNull(&t.Title, patch.Title)
+	changed = applyNullable(&t.Description, patch.Description) || changed
+	changed = applyNotNull(&t.Completed, patch.Completed) || changed
 
-	if patch.Title.Set && patch.Title.Value != nil && *patch.Title.Value != t.Title {
-		t.Title = *patch.Title.Value
-		changed = true
+	return &t, changed
+}
+
+func (t Task) CheckTransition(patch *TaskNullable) error {
+	if !t.Completed || !patch.Completed.Set || patch.Completed.Value == nil {
+		return nil
 	}
 
-	if patch.Description.Set && !equalPtr(patch.Description.Value, t.Description) {
-		t.Description = patch.Description.Value
-		changed = true
+	if !*patch.Completed.Value {
+		return NewAppError(KindConflict, "a completed task cannot be reopened", ErrTaskCompleted)
 	}
 
-	if patch.Completed.Set && patch.Completed.Value != nil && *patch.Completed.Value != t.Completed {
-		t.Completed = *patch.Completed.Value
-
-		if t.Completed {
-			now := time.Now()
-			t.CompletedAt = &now
-		} else {
-			t.CompletedAt = nil
-		}
-
-		changed = true
-	}
-
-	if !changed {
-		return nil, NewAppError(KindInvalidArgument, "nothing to update", ErrNothingToUpdate)
-	}
-
-	return &t, nil
+	return nil
 }

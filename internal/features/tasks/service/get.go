@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/nikita-belan-01/todo_app/internal/core/domain"
@@ -9,7 +10,7 @@ import (
 
 func (s TasksService) SearchTasks(ctx context.Context, tasksFilter *domain.TasksFilter) ([]domain.Task, error) {
 	if err := tasksFilter.Validate(); err != nil {
-		return nil, domain.NewAppError(domain.KindInvalidArgument, "invalid filter data", err)
+		return nil, fmt.Errorf("validate: %w", err)
 	}
 	data, err := s.tasksRepository.SearchTasks(ctx, tasksFilter)
 	if err != nil {

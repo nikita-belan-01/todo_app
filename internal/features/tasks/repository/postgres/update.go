@@ -14,23 +14,31 @@ func (r TasksRepository) UpdateTask(ctx context.Context, task *domain.Task) (int
 		rowExists  bool
 	)
 
-	if err := r.pool.QueryRow(
-		ctx,
-		`WITH updated AS(
+	query := `WITH updated AS(
 				UPDATE todo_app.tasks
 					SET title = $1,
 						description = $2,
 						completed = $3,
-						completed_at = $4,
+						%s
 						version = version + 1
-				WHERE id = $5 AND version = $6
+				WHERE id = $4 AND version = $5
 				RETURNING version)
 		SELECT(SELECT version FROM updated),
-				EXISTS(SELECT 1 FROM todo_app.tasks WHERE id = $5)`,
+				EXISTS(SELECT 1 FROM todo_app.tasks WHERE id = $4)`
+
+	completedAt := ""
+	if task.Completed {
+		completedAt = "completed_at = COALESCE(completed_at, NOW()),"
+	}
+
+	query = fmt.Sprintf(query, completedAt)
+
+	if err := r.pool.QueryRow(
+		ctx,
+		query,
 		task.Title,
 		task.Description,
 		task.Completed,
-		task.CompletedAt,
 		task.ID,
 		task.Version).Scan(&newVersion, &rowExists); err != nil {
 		return 0, fmt.Errorf("query row: %w", utils.TranslateError(err))

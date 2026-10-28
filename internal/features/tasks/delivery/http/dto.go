@@ -29,18 +29,12 @@ type taskIDResponse struct {
 }
 
 type searchTasksRequest struct {
-	UserIDs     uuid.UUIDs `json:"user_ids"`
-	IsCompleted *bool      `json:"is_completed"`
-	Page        int        `json:"page"`
-	Limit       int        `json:"limit"`
+	UserIDs uuid.UUIDs `json:"user_ids"`
 }
 
 func (r searchTasksRequest) BuildDomain() domain.TasksFilter {
 	return domain.TasksFilter{
-		UserIDs:     r.UserIDs,
-		IsCompleted: r.IsCompleted,
-		Page:        r.Page,
-		Limit:       r.Limit,
+		UserIDs: r.UserIDs,
 	}
 }
 

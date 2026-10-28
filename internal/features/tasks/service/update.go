@@ -10,7 +10,7 @@ import (
 
 func (s TasksService) PatchTask(ctx context.Context, taskID uuid.UUID, patch *domain.TaskNullable) (int, error) {
 	if err := patch.Validate(); err != nil {
-		return 0, domain.NewAppError(domain.KindInvalidArgument, "invalid data", err)
+		return 0, fmt.Errorf("validate: %w", err)
 	}
 
 	origTask, err := s.tasksRepository.GetTask(ctx, taskID)
@@ -18,9 +18,13 @@ func (s TasksService) PatchTask(ctx context.Context, taskID uuid.UUID, patch *do
 		return 0, fmt.Errorf("get by id: %w", err)
 	}
 
-	patchedTask, err := origTask.WithPatch(patch)
-	if err != nil {
-		return 0, fmt.Errorf("patching: %w", err)
+	if err = origTask.CheckTransition(patch); err != nil {
+		return 0, fmt.Errorf("check transition: %w", err)
+	}
+
+	patchedTask, changed := origTask.WithPatch(patch)
+	if !changed {
+		return origTask.Version, nil
 	}
 
 	newVersion, err := s.tasksRepository.UpdateTask(ctx, patchedTask)

@@ -1,8 +1,6 @@
 package domain
 
 import (
-	"errors"
-	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -19,20 +17,13 @@ type User struct {
 }
 
 func (u User) Validate() error {
-	var errs []error
-	if err := validator.ValidateLen(u.Name, 3, 100); err != nil {
-		errs = append(errs, fmt.Errorf("name: %w", err))
-	}
+	var v Validation
 
-	if err := validator.ValidateLen(u.Surname, 3, 100); err != nil {
-		errs = append(errs, fmt.Errorf("surname: %w", err))
-	}
+	v.Add("name", validator.ValidateLen(u.Name, NameMinLen, NameMaxLen))
+	v.Add("surname", validator.ValidateLen(u.Surname, SurnameMinLen, SurnameMaxLen))
+	v.Add("phone_number", validator.ValidatePhoneNumber(u.PhoneNumber))
 
-	if err := validator.ValidatePhoneNumber(u.PhoneNumber); err != nil {
-		errs = append(errs, err)
-	}
-
-	return errors.Join(errs...)
+	return v.Err()
 }
 
 type UserNullable struct {
@@ -42,65 +33,24 @@ type UserNullable struct {
 }
 
 func (u UserNullable) Validate() error {
+	var v Validation
+
 	if !u.Name.Set && !u.Surname.Set && !u.PhoneNumber.Set {
-		return fmt.Errorf("patch must contain at least one field: %w", ErrInvalidArgument)
+		v.Addf("", "patch must contain at least one field")
+		return v.Err()
 	}
 
-	var errs []error
-	if u.Name.Set {
-		if u.Name.Value == nil {
-			errs = append(errs, fmt.Errorf("name can't be patched to NULL: %w", ErrInvalidArgument))
-		} else {
-			if err := validator.ValidateLen(*u.Name.Value, 3, 100); err != nil {
-				errs = append(errs, fmt.Errorf("name: %w", err))
-			}
-		}
-	}
+	v.AddNullableLen("name", u.Name, NameMinLen, NameMaxLen)
+	v.AddNullableLen("surname", u.Surname, SurnameMinLen, SurnameMaxLen)
+	v.AddNullableFunc("phone_number", u.PhoneNumber, validator.ValidatePhoneNumber)
 
-	if u.Surname.Set {
-		if u.Surname.Value == nil {
-			errs = append(errs, fmt.Errorf("surname can't be patched to NULL: %w", ErrInvalidArgument))
-		} else {
-			if err := validator.ValidateLen(*u.Surname.Value, 3, 100); err != nil {
-				errs = append(errs, fmt.Errorf("surname: %w", err))
-			}
-		}
-	}
-
-	if u.PhoneNumber.Set {
-		if u.PhoneNumber.Value == nil {
-			errs = append(errs, fmt.Errorf("phone number can't be patched to NULL: %w", ErrInvalidArgument))
-		} else {
-			if err := validator.ValidatePhoneNumber(*u.PhoneNumber.Value); err != nil {
-				errs = append(errs, err)
-			}
-		}
-	}
-
-	return errors.Join(errs...)
+	return v.Err()
 }
 
-func (u User) WithPatch(patch *UserNullable) (*User, error) {
-	var changed bool
+func (u User) WithPatch(patch *UserNullable) (*User, bool) {
+	changed := applyNotNull(&u.Name, patch.Name)
+	changed = applyNotNull(&u.Surname, patch.Surname) || changed
+	changed = applyNotNull(&u.PhoneNumber, patch.PhoneNumber) || changed
 
-	if patch.Name.Set && patch.Name.Value != nil && *patch.Name.Value != u.Name {
-		u.Name = *patch.Name.Value
-		changed = true
-	}
-
-	if patch.Surname.Set && patch.Surname.Value != nil && *patch.Surname.Value != u.Surname {
-		u.Surname = *patch.Surname.Value
-		changed = true
-	}
-
-	if patch.PhoneNumber.Set && patch.PhoneNumber.Value != nil && *patch.PhoneNumber.Value != u.PhoneNumber {
-		u.PhoneNumber = *patch.PhoneNumber.Value
-		changed = true
-	}
-
-	if !changed {
-		return nil, NewAppError(KindInvalidArgument, "nothing to update", ErrNothingToUpdate)
-	}
-
-	return &u, nil
+	return &u, changed
 }

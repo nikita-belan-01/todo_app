@@ -3,6 +3,7 @@ package domain
 import (
 	"errors"
 	"fmt"
+	"strings"
 )
 
 var (
@@ -11,10 +12,11 @@ var (
 	ErrTaskNotFound             = errors.New("task not found")
 	ErrInvalidArgument          = errors.New("invalid argument")
 	ErrVersionConflict          = errors.New("version conflict")
-	ErrNothingToUpdate          = errors.New("nothing to update")
 	ErrUserIDIsNull             = errors.New("user id is null")
 	ErrTooManyUserIDs           = errors.New("too many user ids")
 	ErrEmptyUserIDs             = errors.New("user ids is empty")
+	ErrNullNotAllowed           = errors.New("null is not allowed")
+	ErrTaskCompleted            = errors.New("task completed")
 )
 
 type Kind int
@@ -35,11 +37,20 @@ type AppError struct {
 }
 
 func (ce *AppError) Error() string {
-	if ce.err != nil {
-		return fmt.Sprintf("%s: %s", ce.message, ce.err.Error())
+	if ce.err == nil {
+		return ce.message
 	}
 
-	return ce.message
+	cause := ce.err.Error()
+	if cause == ce.message {
+		return ce.message
+	}
+
+	if rest, ok := strings.CutPrefix(cause, fmt.Sprintf("%s: ", ce.message)); ok {
+		cause = rest
+	}
+
+	return fmt.Sprintf("%s: %s", ce.message, cause)
 }
 
 func (ce *AppError) Unwrap() error {
