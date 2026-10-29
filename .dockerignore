@@ -1,0 +1,11 @@
+.git
+.dockerignore
+.gitignore
+out/
+secrets/
+.env
+.env.example
+Makefile
+docker-compose.yaml
+Dockerfile
+*.md
