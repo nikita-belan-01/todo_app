@@ -1,27 +1,41 @@
 package http
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/nikita-belan-01/todo_app/internal/core/delivery/http/request"
 	"github.com/nikita-belan-01/todo_app/internal/core/delivery/http/types"
 	"github.com/nikita-belan-01/todo_app/internal/core/domain"
+	"github.com/nikita-belan-01/todo_app/pkg/strutil"
 )
 
 const taskIDPathKey = "taskId"
 
 type createTaskRequest struct {
-	UserID      uuid.UUID `json:"user_id"`
-	Title       string    `json:"title"`
-	Description *string   `json:"description"`
+	UserID      string  `json:"user_id"`
+	Title       string  `json:"title"`
+	Description *string `json:"description"`
 }
 
-func (r createTaskRequest) BuildDomain() domain.Task {
+func (r createTaskRequest) BuildDomain() (domain.Task, error) {
+	var v domain.Validation
+
+	userID, err := uuid.Parse(r.UserID)
+	if err != nil && r.UserID != "" {
+		v.Addf("user_id", "%q is not a valid uuid", strutil.Shorten(r.UserID, request.MaxEchoedValue))
+	}
+
+	if err := v.Err(); err != nil {
+		return domain.Task{}, err
+	}
+
 	return domain.Task{
-		UserID:      r.UserID,
+		UserID:      userID,
 		Title:       r.Title,
 		Description: r.Description,
-	}
+	}, nil
 }
 
 type taskIDResponse struct {
@@ -29,13 +43,57 @@ type taskIDResponse struct {
 }
 
 type searchTasksRequest struct {
-	UserIDs uuid.UUIDs `json:"user_ids"`
+	UserIDs     []string `json:"user_ids"`
+	Page        *int     `json:"page"`
+	Limit       *int     `json:"limit"`
+	IsCompleted *bool    `json:"is_completed"`
 }
 
-func (r searchTasksRequest) BuildDomain() domain.TasksFilter {
-	return domain.TasksFilter{
-		UserIDs: r.UserIDs,
+func (r searchTasksRequest) BuildDomain() (domain.TasksFilter, error) {
+	var (
+		v       domain.Validation
+		userIDs uuid.UUIDs
+	)
+
+	if r.UserIDs != nil {
+		if len(r.UserIDs) > domain.UserIDsMaxCount {
+			return domain.TasksFilter{}, domain.NewAppError(
+				domain.KindInvalidArgument,
+				fmt.Sprintf("user_ids: must contain at most %d ids, got %d", domain.UserIDsMaxCount, len(r.UserIDs)),
+				domain.ErrTooManyUserIDs)
+		}
+		userIDs = make(uuid.UUIDs, 0, len(r.UserIDs))
+
+		for i, value := range r.UserIDs {
+			parsed, err := uuid.Parse(value)
+			if err != nil && value != "" {
+				v.Addf(fmt.Sprintf("user_ids.%d", i), "%q is not a valid uuid", strutil.Shorten(value, request.MaxEchoedValue))
+			}
+
+			userIDs = append(userIDs, parsed)
+		}
 	}
+
+	if err := v.Err(); err != nil {
+		return domain.TasksFilter{}, err
+	}
+
+	filter := domain.TasksFilter{
+		UserIDs:     userIDs,
+		IsCompleted: r.IsCompleted,
+		Page:        domain.PageDefaultValue,
+		Limit:       domain.LimitDefaultValue,
+	}
+
+	if r.Page != nil {
+		filter.Page = *r.Page
+	}
+
+	if r.Limit != nil {
+		filter.Limit = *r.Limit
+	}
+
+	return filter, nil
 }
 
 type taskResponse struct {
@@ -72,17 +130,19 @@ func buildTasksResponse(tasks []domain.Task) []taskResponse {
 }
 
 type patchTaskRequest struct {
+	Version     int                    `json:"version"`
 	Title       types.Nullable[string] `json:"title"`
 	Description types.Nullable[string] `json:"description"`
 	Completed   types.Nullable[bool]   `json:"completed"`
 }
 
-func (r patchTaskRequest) BuildDomain() domain.TaskNullable {
+func (r patchTaskRequest) BuildDomain() (domain.TaskNullable, error) {
 	return domain.TaskNullable{
+		Version:     r.Version,
 		Title:       r.Title.Nullable,
 		Description: r.Description.Nullable,
 		Completed:   r.Completed.Nullable,
-	}
+	}, nil
 }
 
 type taskPatchResponse struct {

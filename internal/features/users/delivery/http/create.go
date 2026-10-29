@@ -7,6 +7,7 @@ import (
 
 	"github.com/nikita-belan-01/todo_app/internal/core/delivery/http/request"
 	"github.com/nikita-belan-01/todo_app/internal/core/delivery/http/response"
+	"github.com/nikita-belan-01/todo_app/internal/core/delivery/http/utils"
 	"github.com/nikita-belan-01/todo_app/pkg/logger"
 )
 
@@ -31,5 +32,5 @@ func (h UsersHTTPHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	responseHandler.JSONResponse(userIDResponse{ID: id}, http.StatusCreated)
+	responseHandler.CreatedResponse(utils.CreatedLocation(r, id.String()), userIDResponse{ID: id})
 }

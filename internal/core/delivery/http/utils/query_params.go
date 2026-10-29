@@ -31,20 +31,6 @@ func GetIntQueryParam(r *http.Request, key string, defaultValue int) int {
 	return value
 }
 
-func GetNullBoolQueryParam(r *http.Request, key string, defaultValue *bool) *bool {
-	param := r.URL.Query().Get(key)
-	if param == "" {
-		return defaultValue
-	}
-
-	value, err := strconv.ParseBool(param)
-	if err != nil {
-		return defaultValue
-	}
-
-	return &value
-}
-
 func GetPagination(r *http.Request) Pagination {
 	page, limit := domain.ClampPagination(
 		GetIntQueryParam(r, pageQueryKey, domain.PageDefaultValue),
@@ -54,4 +40,15 @@ func GetPagination(r *http.Request) Pagination {
 		Page:  page,
 		Limit: limit,
 	}
+}
+
+func RejectQueryParams(r *http.Request, message string) error {
+	if r.URL.RawQuery != "" {
+		return domain.NewAppError(
+			domain.KindInvalidArgument,
+			message,
+			domain.ErrInvalidArgument)
+	}
+
+	return nil
 }

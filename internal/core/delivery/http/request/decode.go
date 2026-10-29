@@ -9,11 +9,22 @@ import (
 	"strings"
 
 	"github.com/nikita-belan-01/todo_app/internal/core/domain"
+	"github.com/nikita-belan-01/todo_app/pkg/strutil"
 )
+
+const MaxEchoedValue = 64
 
 const unknownFieldPrefix = "json: unknown field"
 
-func Decode[T interface{ BuildDomain() DT }, DT any](r *http.Request) (DT, error) {
+func DecodeOptional[T interface{ BuildDomain() (DT, error) }, DT any](r *http.Request) (DT, error) {
+	return decode[T](r, true)
+}
+
+func Decode[T interface{ BuildDomain() (DT, error) }, DT any](r *http.Request) (DT, error) {
+	return decode[T](r, false)
+}
+
+func decode[T interface{ BuildDomain() (DT, error) }, DT any](r *http.Request, allowEmpty bool) (DT, error) {
 	var dto *T
 	var zero DT
 
@@ -21,6 +32,12 @@ func Decode[T interface{ BuildDomain() DT }, DT any](r *http.Request) (DT, error
 	dec.DisallowUnknownFields()
 
 	if err := dec.Decode(&dto); err != nil {
+		if allowEmpty && errors.Is(err, io.EOF) {
+			var empty T
+
+			return empty.BuildDomain()
+		}
+
 		return zero, decodeError(err)
 	}
 
@@ -36,7 +53,7 @@ func Decode[T interface{ BuildDomain() DT }, DT any](r *http.Request) (DT, error
 		return zero, decodeError(err)
 	}
 
-	return (*dto).BuildDomain(), nil
+	return (*dto).BuildDomain()
 }
 
 func decodeError(err error) error {
@@ -58,12 +75,12 @@ func decodeError(err error) error {
 		if typeErr.Field == "" {
 			return domain.NewAppError(
 				domain.KindInvalidArgument,
-				fmt.Sprintf("request body must be a json object, got %s", typeErr.Value),
+				fmt.Sprintf("request body must be a json object, got %s", strutil.Shorten(typeErr.Value, MaxEchoedValue)),
 				err)
 		}
 		return domain.NewAppError(
 			domain.KindInvalidArgument,
-			fmt.Sprintf("field %q: expected %s, got %s", typeErr.Field, typeErr.Type, typeErr.Value), err)
+			fmt.Sprintf("field %q: unexpected %s", typeErr.Field, strutil.Shorten(typeErr.Value, MaxEchoedValue)), err)
 	}
 
 	var syntaxErr *json.SyntaxError
@@ -76,9 +93,9 @@ func decodeError(err error) error {
 	if field, ok := strings.CutPrefix(err.Error(), unknownFieldPrefix); ok {
 		return domain.NewAppError(
 			domain.KindInvalidArgument,
-			fmt.Sprintf("unknown field %s", strings.TrimSpace(field)), err)
+			fmt.Sprintf("unknown field %s", strutil.Shorten(strings.TrimSpace(field), MaxEchoedValue)), err)
 	}
 
 	return domain.NewAppError(domain.KindInvalidArgument,
-		fmt.Sprintf("malformed value in request body: %s", err), err)
+		fmt.Sprintf("malformed value in request body: %s", strutil.Shorten(err.Error(), MaxEchoedValue)), err)
 }

@@ -8,12 +8,21 @@ import (
 	"github.com/nikita-belan-01/todo_app/pkg/validator"
 )
 
+const maxProblems = 10
+
 type Validation struct {
 	problems []string
 	causes   []error
+	skipped  int
 }
 
 func (v *Validation) addProblem(field, msg string) {
+	if len(v.problems) >= maxProblems {
+		v.skipped++
+
+		return
+	}
+
 	if field == "" {
 		v.problems = append(v.problems, msg)
 		return
@@ -93,7 +102,12 @@ func (v *Validation) Err() error {
 		return nil
 	}
 
+	message := strings.Join(v.problems, "; ")
+	if v.skipped > 0 {
+		message = fmt.Sprintf("%s; and %d more problems", message, v.skipped)
+	}
+
 	causes := append([]error{ErrInvalidArgument}, v.causes...)
 
-	return NewAppError(KindInvalidArgument, strings.Join(v.problems, "; "), errors.Join(causes...))
+	return NewAppError(KindInvalidArgument, message, errors.Join(causes...))
 }

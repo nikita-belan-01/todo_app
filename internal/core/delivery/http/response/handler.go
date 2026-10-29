@@ -9,8 +9,11 @@ import (
 
 	"github.com/nikita-belan-01/todo_app/internal/core/domain"
 	"github.com/nikita-belan-01/todo_app/pkg/logger"
+	"github.com/nikita-belan-01/todo_app/pkg/strutil"
 	"go.uber.org/zap"
 )
+
+const maxLoggedError = 4096
 
 const statusClientClosedRequest = 499
 
@@ -84,11 +87,17 @@ func (h HTTPResponseHandler) ErrorResponse(err error) {
 		logFunc = h.log.Error
 	}
 
-	logFunc(msg, zap.Error(err))
+	logFunc(msg, zap.String("error", strutil.Shorten(err.Error(), maxLoggedError)))
 
 	h.errorResponse(statusCode, msg)
 }
 
 func (h HTTPResponseHandler) errorResponse(statusCode int, msg string) {
 	h.JSONResponse(map[string]string{"message": msg}, statusCode)
+}
+
+func (h HTTPResponseHandler) CreatedResponse(location string, responseBody any) {
+	h.rw.Header().Set("Location", location)
+
+	h.JSONResponse(responseBody, http.StatusCreated)
 }

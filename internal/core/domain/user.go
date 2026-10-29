@@ -27,6 +27,7 @@ func (u User) Validate() error {
 }
 
 type UserNullable struct {
+	Version     int
 	Name        Nullable[string]
 	Surname     Nullable[string]
 	PhoneNumber Nullable[string]
@@ -34,6 +35,10 @@ type UserNullable struct {
 
 func (u UserNullable) Validate() error {
 	var v Validation
+
+	if u.Version < 1 {
+		v.Addf("version", "is required and must be greater than 0")
+	}
 
 	if !u.Name.Set && !u.Surname.Set && !u.PhoneNumber.Set {
 		v.Addf("", "patch must contain at least one field")
@@ -48,6 +53,7 @@ func (u UserNullable) Validate() error {
 }
 
 func (u User) WithPatch(patch *UserNullable) (*User, bool) {
+	u.Version = patch.Version
 	changed := applyNotNull(&u.Name, patch.Name)
 	changed = applyNotNull(&u.Surname, patch.Surname) || changed
 	changed = applyNotNull(&u.PhoneNumber, patch.PhoneNumber) || changed

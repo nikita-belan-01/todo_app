@@ -11,5 +11,6 @@ var statusByKind = map[domain.Kind]int{
 	domain.KindUnavailable:     http.StatusServiceUnavailable,
 	domain.KindNotFound:        http.StatusNotFound,
 	domain.KindInvalidArgument: http.StatusBadRequest,
+	domain.KindUnprocessable:   http.StatusUnprocessableEntity,
 	domain.KindConflict:        http.StatusConflict,
 	domain.KindTooLarge:        http.StatusRequestEntityTooLarge}

@@ -18,6 +18,10 @@ func (s UsersService) PatchUser(ctx context.Context, userID uuid.UUID, patch *do
 		return 0, fmt.Errorf("get: %w", err)
 	}
 
+	if origUser.Version != patch.Version {
+		return 0, domain.NewAppError(domain.KindConflict, "user was modified, re-read it", domain.ErrVersionConflict)
+	}
+
 	patchedUser, changed := origUser.WithPatch(patch)
 	if !changed {
 		return origUser.Version, nil

@@ -17,8 +17,8 @@ type mapped struct {
 }
 
 var byConstraint = map[string]mapped{
-	"tasks_user_id_fkey":          {domain.KindNotFound, "user not found", domain.ErrUserNotFound},
-	"users_phone_number_key":      {domain.KindConflict, "phone number already exists", domain.ErrPhoneNumberAlreadyExists},
+	"tasks_user_id_fkey":          {domain.KindUnprocessable, "user_id: referenced user does not exist", domain.ErrUserNotFound},
+	"users_phone_number_key":      {domain.KindConflict, "phone_number: already exists", domain.ErrPhoneNumberAlreadyExists},
 	"tasks_title_length":          {domain.KindInvalidArgument, "title must be 3..100 characters", domain.ErrInvalidArgument},
 	"tasks_description_length":    {domain.KindInvalidArgument, "description must be 3..1000 characters", domain.ErrInvalidArgument},
 	"tasks_completed_consistency": {domain.KindInvalidArgument, "completed and completed_at are inconsistent", domain.ErrInvalidArgument},
@@ -29,7 +29,7 @@ var byConstraint = map[string]mapped{
 
 var byCode = map[string]mapped{
 	pgerrcode.UniqueViolation:                        {domain.KindConflict, "already exists", nil},
-	pgerrcode.ForeignKeyViolation:                    {domain.KindInvalidArgument, "referenced entity not found", nil},
+	pgerrcode.ForeignKeyViolation:                    {domain.KindUnprocessable, "referenced entity does not exist", nil},
 	pgerrcode.CheckViolation:                         {domain.KindInvalidArgument, "request violates a data constraint", nil},
 	pgerrcode.NotNullViolation:                       {domain.KindInvalidArgument, "required field is missing", nil},
 	pgerrcode.StringDataRightTruncationDataException: {domain.KindInvalidArgument, "value is too long", nil},
@@ -72,6 +72,10 @@ func CheckVersionedUpdate(newVersion *int, rowExists bool, notFoundErr error) er
 	case rowExists:
 		return domain.NewAppError(domain.KindConflict, "version conflict", domain.ErrVersionConflict)
 	default:
-		return domain.NewAppError(domain.KindNotFound, "not found", notFoundErr)
+		return domain.NewNotFoundError(notFoundErr)
 	}
+}
+
+func IsNoRows(err error) bool {
+	return errors.Is(err, pgx.ErrNoRows)
 }

@@ -19,7 +19,7 @@ func (r TasksRepository) DeleteTask(ctx context.Context, taskID uuid.UUID) error
 	}
 
 	if cmd.RowsAffected() == 0 {
-		return domain.NewAppError(domain.KindNotFound, "not found", domain.ErrTaskNotFound)
+		return domain.NewNotFoundError(domain.ErrTaskNotFound)
 	}
 
 	return nil

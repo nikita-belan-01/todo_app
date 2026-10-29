@@ -70,6 +70,10 @@ func (r UsersRepository) GetUser(ctx context.Context, userID uuid.UUID) (*domain
 			&user.Surname,
 			&user.PhoneNumber,
 			&user.Version); err != nil {
+		if utils.IsNoRows(err) {
+			return nil, domain.NewNotFoundError(domain.ErrUserNotFound)
+		}
+
 		return nil, fmt.Errorf("scan row: %w", utils.TranslateError(err))
 	}
 

@@ -100,6 +100,10 @@ func (r TasksRepository) GetTask(ctx context.Context, taskID uuid.UUID) (*domain
 		&task.Completed,
 		&task.CompletedAt,
 		&task.Version); err != nil {
+		if utils.IsNoRows(err) {
+			return nil, domain.NewNotFoundError(domain.ErrTaskNotFound)
+		}
+
 		return nil, fmt.Errorf("scan row: %w", utils.TranslateError(err))
 	}
 

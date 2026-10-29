@@ -26,6 +26,7 @@ const (
 	KindUnavailable
 	KindNotFound
 	KindInvalidArgument
+	KindUnprocessable
 	KindConflict
 	KindTooLarge
 )
@@ -72,4 +73,15 @@ func KindOf(err error) Kind {
 	}
 
 	return KindInternal
+}
+
+func NewNotFoundError(cause error) *AppError {
+	return NewAppError(KindNotFound, cause.Error(), cause)
+}
+
+func NewInvalidUUIDArgumentError(field string) *AppError {
+	return NewAppError(
+		KindInvalidArgument,
+		fmt.Sprintf("%s: invalid format, expected a uuid", field),
+		ErrInvalidArgument)
 }

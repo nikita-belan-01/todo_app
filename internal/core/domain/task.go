@@ -42,6 +42,14 @@ func (tf *TasksFilter) Validate() error {
 		}
 	}
 
+	if tf.Page < PageDefaultValue || tf.Page > PageMaxValue {
+		v.Addf("page", "must be between %d and %d, got %d", PageDefaultValue, PageMaxValue, tf.Page)
+	}
+
+	if tf.Limit < 1 || tf.Limit > LimitMaxValue {
+		v.Addf("limit", "must be between %d and %d, got %d", 1, LimitMaxValue, tf.Limit)
+	}
+
 	return v.Err()
 }
 
@@ -71,6 +79,7 @@ func (t Task) Validate() error {
 }
 
 type TaskNullable struct {
+	Version     int
 	Title       Nullable[string]
 	Description Nullable[string]
 	Completed   Nullable[bool]
@@ -78,6 +87,10 @@ type TaskNullable struct {
 
 func (t TaskNullable) Validate() error {
 	var v Validation
+
+	if t.Version < 1 {
+		v.Addf("version", "is required and must be greater than 0")
+	}
 
 	if !t.Title.Set && !t.Description.Set && !t.Completed.Set {
 		v.Addf("", "patch must contain at least one field")
@@ -92,6 +105,7 @@ func (t TaskNullable) Validate() error {
 }
 
 func (t Task) WithPatch(patch *TaskNullable) (*Task, bool) {
+	t.Version = patch.Version
 	changed := applyNotNull(&t.Title, patch.Title)
 	changed = applyNullable(&t.Description, patch.Description) || changed
 	changed = applyNotNull(&t.Completed, patch.Completed) || changed

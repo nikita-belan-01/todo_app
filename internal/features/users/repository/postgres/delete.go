@@ -19,7 +19,7 @@ func (r UsersRepository) DeleteUser(ctx context.Context, userID uuid.UUID) error
 	}
 
 	if cmd.RowsAffected() == 0 {
-		return domain.NewAppError(domain.KindNotFound, "not found", domain.ErrUserNotFound)
+		return domain.NewNotFoundError(domain.ErrUserNotFound)
 	}
 
 	return nil
