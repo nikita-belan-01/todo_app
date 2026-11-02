@@ -16,7 +16,10 @@ var (
 	ErrTooManyUserIDs           = errors.New("too many user ids")
 	ErrEmptyUserIDs             = errors.New("user ids is empty")
 	ErrNullNotAllowed           = errors.New("null is not allowed")
-	ErrTaskCompleted            = errors.New("task completed")
+	ErrInvalidUUID              = errors.New("invalid uuid")
+	ErrVersionRequired          = errors.New("version is required")
+	ErrEmptyPatch               = errors.New("patch is empty")
+	ErrCompletedAtInconsistent  = errors.New("completed and completed_at are inconsistent")
 )
 
 type Kind int
@@ -32,9 +35,10 @@ const (
 )
 
 type AppError struct {
-	kind    Kind
-	message string
-	err     error
+	kind     Kind
+	message  string
+	problems []Problem
+	err      error
 }
 
 func (ce *AppError) Error() string {
@@ -47,7 +51,7 @@ func (ce *AppError) Error() string {
 		return ce.message
 	}
 
-	if rest, ok := strings.CutPrefix(cause, fmt.Sprintf("%s: ", ce.message)); ok {
+	if rest, ok := strings.CutPrefix(cause, ce.message+": "); ok {
 		cause = rest
 	}
 
@@ -62,8 +66,33 @@ func (ce *AppError) Message() string {
 	return ce.message
 }
 
+func (ce *AppError) Problems() []Problem {
+	return ce.problems
+}
+
 func NewAppError(kind Kind, message string, err error) *AppError {
-	return &AppError{kind: kind, message: message, err: err}
+	return &AppError{
+		kind:    kind,
+		message: message,
+		err:     err}
+}
+
+func NewValidationError(message string, problems []Problem, err error) *AppError {
+	return &AppError{
+		kind:     KindInvalidArgument,
+		message:  message,
+		problems: problems,
+		err:      err}
+}
+
+func NewFieldError(kind Kind, field, message string, err error) *AppError {
+	problem := Problem{Field: field, Message: message}
+
+	return &AppError{
+		kind:     kind,
+		message:  problem.String(),
+		problems: []Problem{problem},
+		err:      err}
 }
 
 func KindOf(err error) Kind {

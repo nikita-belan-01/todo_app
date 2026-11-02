@@ -12,34 +12,44 @@ const (
 	limitQueryKey = "limit"
 )
 
-type Pagination struct {
-	Page  int
-	Limit int
-}
-
-func GetIntQueryParam(r *http.Request, key string, defaultValue int) int {
+func GetIntQueryParam(r *http.Request, key string, defaultValue int) (int, error) {
 	param := r.URL.Query().Get(key)
 	if param == "" {
-		return defaultValue
+		return defaultValue, nil
 	}
 
 	value, err := strconv.Atoi(param)
 	if err != nil {
-		return defaultValue
+		return 0, domain.NewAppError(
+			domain.KindInvalidArgument,
+			"invalid format, expected an integer",
+			domain.ErrInvalidArgument)
 	}
 
-	return value
+	return value, nil
 }
 
-func GetPagination(r *http.Request) Pagination {
-	page, limit := domain.ClampPagination(
-		GetIntQueryParam(r, pageQueryKey, domain.PageDefaultValue),
-		GetIntQueryParam(r, limitQueryKey, domain.LimitDefaultValue))
+func GetPagination(r *http.Request) (domain.Pagination, error) {
+	var v domain.Validation
 
-	return Pagination{
+	page, err := GetIntQueryParam(r, pageQueryKey, domain.PageDefaultValue)
+	if err != nil {
+		v.Add(pageQueryKey, err)
+	}
+
+	limit, err := GetIntQueryParam(r, limitQueryKey, domain.LimitDefaultValue)
+	if err != nil {
+		v.Add(limitQueryKey, err)
+	}
+
+	if err := v.Err(); err != nil {
+		return domain.Pagination{}, err
+	}
+
+	return domain.Pagination{
 		Page:  page,
 		Limit: limit,
-	}
+	}, nil
 }
 
 func RejectQueryParams(r *http.Request, message string) error {

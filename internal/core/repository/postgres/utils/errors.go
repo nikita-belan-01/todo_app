@@ -12,28 +12,29 @@ import (
 
 type mapped struct {
 	kind     domain.Kind
+	field    string
 	message  string
 	sentinel error
 }
 
 var byConstraint = map[string]mapped{
-	"tasks_user_id_fkey":          {domain.KindUnprocessable, "user_id: referenced user does not exist", domain.ErrUserNotFound},
-	"users_phone_number_key":      {domain.KindConflict, "phone_number: already exists", domain.ErrPhoneNumberAlreadyExists},
-	"tasks_title_length":          {domain.KindInvalidArgument, "title must be 3..100 characters", domain.ErrInvalidArgument},
-	"tasks_description_length":    {domain.KindInvalidArgument, "description must be 3..1000 characters", domain.ErrInvalidArgument},
-	"tasks_completed_consistency": {domain.KindInvalidArgument, "completed and completed_at are inconsistent", domain.ErrInvalidArgument},
-	"users_name_length":           {domain.KindInvalidArgument, "name must be 3..100 characters", domain.ErrInvalidArgument},
-	"users_surname_length":        {domain.KindInvalidArgument, "surname must be 3..100 characters", domain.ErrInvalidArgument},
-	"users_phone_number_valid":    {domain.KindInvalidArgument, "phone number is malformed", domain.ErrInvalidArgument},
+	"tasks_user_id_fkey":          {domain.KindUnprocessable, "user_id", "referenced user does not exist", domain.ErrUserNotFound},
+	"users_phone_number_key":      {domain.KindConflict, "phone_number", "already exists", domain.ErrPhoneNumberAlreadyExists},
+	"tasks_title_length":          {domain.KindInvalidArgument, "title", "length must be between 3 and 100 characters", domain.ErrInvalidArgument},
+	"tasks_description_length":    {domain.KindInvalidArgument, "description", "length must be between 3 and 1000 characters", domain.ErrInvalidArgument},
+	"tasks_completed_consistency": {domain.KindInvalidArgument, "completed_at", "is inconsistent with completed", domain.ErrCompletedAtInconsistent},
+	"users_name_length":           {domain.KindInvalidArgument, "name", "length must be between 3 and 100 characters", domain.ErrInvalidArgument},
+	"users_surname_length":        {domain.KindInvalidArgument, "surname", "length must be between 3 and 100 characters", domain.ErrInvalidArgument},
+	"users_phone_number_valid":    {domain.KindInvalidArgument, "phone_number", "invalid format, expected a leading + followed by digits only", domain.ErrInvalidArgument},
 }
 
 var byCode = map[string]mapped{
-	pgerrcode.UniqueViolation:                        {domain.KindConflict, "already exists", nil},
-	pgerrcode.ForeignKeyViolation:                    {domain.KindUnprocessable, "referenced entity does not exist", nil},
-	pgerrcode.CheckViolation:                         {domain.KindInvalidArgument, "request violates a data constraint", nil},
-	pgerrcode.NotNullViolation:                       {domain.KindInvalidArgument, "required field is missing", nil},
-	pgerrcode.StringDataRightTruncationDataException: {domain.KindInvalidArgument, "value is too long", nil},
-	pgerrcode.QueryCanceled:                          {domain.KindUnavailable, "request timed out", nil},
+	pgerrcode.UniqueViolation:                        {domain.KindConflict, "", "already exists", nil},
+	pgerrcode.ForeignKeyViolation:                    {domain.KindUnprocessable, "", "referenced entity does not exist", nil},
+	pgerrcode.CheckViolation:                         {domain.KindInvalidArgument, "", "request violates a data constraint", nil},
+	pgerrcode.NotNullViolation:                       {domain.KindInvalidArgument, "", "required field is missing", nil},
+	pgerrcode.StringDataRightTruncationDataException: {domain.KindInvalidArgument, "", "value is too long", nil},
+	pgerrcode.QueryCanceled:                          {domain.KindUnavailable, "", "request timed out", nil},
 }
 
 func TranslateError(err error) error {
@@ -62,7 +63,11 @@ func TranslateError(err error) error {
 		cause = fmt.Errorf("%w: %w", m.sentinel, pgErr)
 	}
 
-	return domain.NewAppError(m.kind, m.message, cause)
+	if m.field == "" {
+		return domain.NewAppError(m.kind, m.message, cause)
+	}
+
+	return domain.NewFieldError(m.kind, m.field, m.message, cause)
 }
 
 func CheckVersionedUpdate(newVersion *int, rowExists bool, notFoundErr error) error {

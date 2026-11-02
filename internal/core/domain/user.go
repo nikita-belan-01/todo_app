@@ -37,11 +37,11 @@ func (u UserNullable) Validate() error {
 	var v Validation
 
 	if u.Version < 1 {
-		v.Addf("version", "is required and must be greater than 0")
+		v.AddWithCause("version", ErrVersionRequired, "is required and must be greater than 0")
 	}
 
 	if !u.Name.Set && !u.Surname.Set && !u.PhoneNumber.Set {
-		v.Addf("", "patch must contain at least one field")
+		v.AddWithCause("", ErrEmptyPatch, "patch must contain at least one field")
 		return v.Err()
 	}
 

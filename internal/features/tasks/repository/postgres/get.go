@@ -10,7 +10,7 @@ import (
 )
 
 func (r TasksRepository) SearchTasks(ctx context.Context, tasksFilter *domain.TasksFilter) ([]domain.Task, error) {
-	offset := utils.CalculateOffset(tasksFilter.Page, tasksFilter.Limit)
+	offset := utils.CalculateOffset(tasksFilter.Pagination.Page, tasksFilter.Pagination.Limit)
 
 	query := `SELECT
 					id,
@@ -27,7 +27,7 @@ func (r TasksRepository) SearchTasks(ctx context.Context, tasksFilter *domain.Ta
 			LIMIT $1
 			OFFSET $2`
 
-	args := []any{tasksFilter.Limit, offset}
+	args := []any{tasksFilter.Pagination.Limit, offset}
 
 	switch {
 	case tasksFilter.UserIDs != nil && tasksFilter.IsCompleted != nil:

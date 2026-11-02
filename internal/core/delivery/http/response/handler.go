@@ -13,10 +13,6 @@ import (
 	"go.uber.org/zap"
 )
 
-const maxLoggedError = 4096
-
-const statusClientClosedRequest = 499
-
 type HTTPResponseHandler struct {
 	log *logger.Logger
 	rw  http.ResponseWriter
@@ -42,12 +38,13 @@ func (h HTTPResponseHandler) JSONResponse(responseBody any, statusCode int) {
 		h.log.Error("write HTTP response", zap.Error(err))
 	}
 }
+
 func (h HTTPResponseHandler) PanicResponse(p any, msg string) {
 	err := fmt.Errorf("unexpected panic: %v", p)
 
 	h.log.Error(msg, zap.Error(err))
 
-	h.errorResponse(http.StatusInternalServerError, msg)
+	h.errorResponse(http.StatusInternalServerError, msg, nil)
 }
 
 func (h HTTPResponseHandler) ErrorResponse(err error) {
@@ -58,7 +55,7 @@ func (h HTTPResponseHandler) ErrorResponse(err error) {
 	switch {
 	case errors.Is(err, context.Canceled):
 		h.log.Debug("request canceled by client", zap.Error(err))
-		h.errorResponse(statusClientClosedRequest, "client closed request")
+		h.errorResponse(statusClientClosedRequest, "client closed request", nil)
 		return
 	case errors.Is(err, context.DeadlineExceeded):
 		err = domain.NewAppError(domain.KindUnavailable, "request timed out", err)
@@ -71,9 +68,12 @@ func (h HTTPResponseHandler) ErrorResponse(err error) {
 
 	msg := "internal server error"
 
+	var problems []domain.Problem
+
 	var appErr *domain.AppError
 	if errors.As(err, &appErr) && statusCode != http.StatusInternalServerError {
 		msg = appErr.Message()
+		problems = appErr.Problems()
 	}
 
 	var logFunc func(string, ...zap.Field)
@@ -89,11 +89,7 @@ func (h HTTPResponseHandler) ErrorResponse(err error) {
 
 	logFunc(msg, zap.String("error", strutil.Shorten(err.Error(), maxLoggedError)))
 
-	h.errorResponse(statusCode, msg)
-}
-
-func (h HTTPResponseHandler) errorResponse(statusCode int, msg string) {
-	h.JSONResponse(map[string]string{"message": msg}, statusCode)
+	h.errorResponse(statusCode, msg, problems)
 }
 
 func (h HTTPResponseHandler) CreatedResponse(location string, responseBody any) {

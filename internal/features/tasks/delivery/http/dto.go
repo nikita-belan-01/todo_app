@@ -24,7 +24,7 @@ func (r createTaskRequest) BuildDomain() (domain.Task, error) {
 
 	userID, err := uuid.Parse(r.UserID)
 	if err != nil && r.UserID != "" {
-		v.Addf("user_id", "%q is not a valid uuid", strutil.Shorten(r.UserID, request.MaxEchoedValue))
+		v.AddWithCause("user_id", domain.ErrInvalidUUID, "%q is not a valid uuid", strutil.Shorten(r.UserID, request.MaxEchoedValue))
 	}
 
 	if err := v.Err(); err != nil {
@@ -67,7 +67,7 @@ func (r searchTasksRequest) BuildDomain() (domain.TasksFilter, error) {
 		for i, value := range r.UserIDs {
 			parsed, err := uuid.Parse(value)
 			if err != nil && value != "" {
-				v.Addf(fmt.Sprintf("user_ids.%d", i), "%q is not a valid uuid", strutil.Shorten(value, request.MaxEchoedValue))
+				v.AddWithCause(fmt.Sprintf("user_ids.%d", i), domain.ErrInvalidUUID, "%q is not a valid uuid", strutil.Shorten(value, request.MaxEchoedValue))
 			}
 
 			userIDs = append(userIDs, parsed)
@@ -81,16 +81,18 @@ func (r searchTasksRequest) BuildDomain() (domain.TasksFilter, error) {
 	filter := domain.TasksFilter{
 		UserIDs:     userIDs,
 		IsCompleted: r.IsCompleted,
-		Page:        domain.PageDefaultValue,
-		Limit:       domain.LimitDefaultValue,
+		Pagination: domain.Pagination{
+			Page:  domain.PageDefaultValue,
+			Limit: domain.LimitDefaultValue,
+		},
 	}
 
 	if r.Page != nil {
-		filter.Page = *r.Page
+		filter.Pagination.Page = *r.Page
 	}
 
 	if r.Limit != nil {
-		filter.Limit = *r.Limit
+		filter.Pagination.Limit = *r.Limit
 	}
 
 	return filter, nil

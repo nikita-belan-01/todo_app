@@ -22,10 +22,6 @@ func (s TasksService) PatchTask(ctx context.Context, taskID uuid.UUID, patch *do
 		return 0, domain.NewAppError(domain.KindConflict, "task was modified, re-read it", domain.ErrVersionConflict)
 	}
 
-	if err = origTask.CheckTransition(patch); err != nil {
-		return 0, fmt.Errorf("check transition: %w", err)
-	}
-
 	patchedTask, changed := origTask.WithPatch(patch)
 	if !changed {
 		return origTask.Version, nil

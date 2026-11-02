@@ -15,23 +15,16 @@ func (r TasksRepository) UpdateTask(ctx context.Context, task *domain.Task) (int
 	)
 
 	query := `WITH updated AS(
-				UPDATE todo_app.tasks
-					SET title = $1,
-						description = $2,
-						completed = $3,
-						%s
-						version = version + 1
-				WHERE id = $4 AND version = $5
-				RETURNING version)
+						UPDATE todo_app.tasks
+							SET title = $1,
+								description = $2,
+								completed = $3,
+								completed_at = CASE WHEN $3 THEN COALESCE(completed_at, NOW()) ELSE NULL END,
+								version = version + 1
+						WHERE id = $4 AND version = $5
+						RETURNING version)
 		SELECT(SELECT version FROM updated),
 				EXISTS(SELECT 1 FROM todo_app.tasks WHERE id = $4)`
-
-	completedAt := ""
-	if task.Completed {
-		completedAt = "completed_at = COALESCE(completed_at, NOW()),"
-	}
-
-	query = fmt.Sprintf(query, completedAt)
 
 	if err := r.pool.QueryRow(
 		ctx,

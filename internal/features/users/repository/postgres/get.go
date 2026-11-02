@@ -9,8 +9,8 @@ import (
 	"github.com/nikita-belan-01/todo_app/internal/core/repository/postgres/utils"
 )
 
-func (r UsersRepository) GetUsers(ctx context.Context, page, limit int) ([]domain.User, error) {
-	offset := utils.CalculateOffset(page, limit)
+func (r UsersRepository) GetUsers(ctx context.Context, pagination *domain.Pagination) ([]domain.User, error) {
+	offset := utils.CalculateOffset(pagination.Page, pagination.Limit)
 
 	rows, err := r.pool.Query(
 		ctx,
@@ -24,7 +24,7 @@ func (r UsersRepository) GetUsers(ctx context.Context, page, limit int) ([]domai
 		ORDER BY created_at, id
 		LIMIT $1
 		OFFSET $2`,
-		limit,
+		pagination.Limit,
 		offset)
 	if err != nil {
 		return nil, fmt.Errorf("query: %w", utils.TranslateError(err))

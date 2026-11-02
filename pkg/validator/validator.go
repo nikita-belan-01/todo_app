@@ -12,11 +12,11 @@ var (
 )
 
 type LenError struct {
-	Min, Max, Got int
+	min, max, got int
 }
 
 func (e *LenError) Error() string {
-	return fmt.Sprintf("length must be between %d and %d characters, got %d", e.Min, e.Max, e.Got)
+	return fmt.Sprintf("length must be between %d and %d characters, got %d", e.min, e.max, e.got)
 }
 
 func (e *LenError) Unwrap() error {
@@ -39,7 +39,7 @@ var phoneNumberRe = regexp.MustCompile(`^\+[0-9]+$`)
 
 func ValidateLen(s string, min, max int) error {
 	if n := len([]rune(s)); n < min || n > max {
-		return &LenError{Min: min, Max: max, Got: n}
+		return &LenError{min: min, max: max, got: n}
 	}
 
 	return nil

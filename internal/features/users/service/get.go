@@ -2,15 +2,20 @@ package service
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/nikita-belan-01/todo_app/internal/core/domain"
 )
 
-func (s UsersService) GetUsers(ctx context.Context, page, limit int) ([]domain.User, error) {
-	data, err := s.usersRepository.GetUsers(ctx, page, limit)
+func (s UsersService) GetUsers(ctx context.Context, pagination *domain.Pagination) ([]domain.User, error) {
+	if err := pagination.Validate(); err != nil {
+		return nil, fmt.Errorf("validate: %w", err)
+	}
+
+	data, err := s.usersRepository.GetUsers(ctx, pagination)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get users: %w", err)
 	}
 
 	return data, nil
