@@ -9,7 +9,6 @@ import (
 
 	"github.com/nikita-belan-01/todo_app/internal/core/domain"
 	"github.com/nikita-belan-01/todo_app/pkg/logger"
-	"github.com/nikita-belan-01/todo_app/pkg/strutil"
 	"go.uber.org/zap"
 )
 
@@ -35,14 +34,14 @@ func (h HTTPResponseHandler) JSONResponse(responseBody any, statusCode int) {
 	h.rw.WriteHeader(statusCode)
 
 	if err := json.NewEncoder(h.rw).Encode(responseBody); err != nil {
-		h.log.Error("write HTTP response", zap.Error(err))
+		h.log.Error("write HTTP response", logger.ErrorField(err))
 	}
 }
 
 func (h HTTPResponseHandler) PanicResponse(p any, msg string) {
 	err := fmt.Errorf("unexpected panic: %v", p)
 
-	h.log.Error(msg, zap.Error(err))
+	h.log.Error(msg, logger.ErrorField(err))
 
 	h.errorResponse(http.StatusInternalServerError, msg, nil)
 }
@@ -54,7 +53,7 @@ func (h HTTPResponseHandler) ErrorResponse(err error) {
 
 	switch {
 	case errors.Is(err, context.Canceled):
-		h.log.Debug("request canceled by client", zap.Error(err))
+		h.log.Debug("request canceled by client", logger.ErrorField(err))
 		h.errorResponse(statusClientClosedRequest, "client closed request", nil)
 		return
 	case errors.Is(err, context.DeadlineExceeded):
@@ -87,7 +86,7 @@ func (h HTTPResponseHandler) ErrorResponse(err error) {
 		logFunc = h.log.Error
 	}
 
-	logFunc(msg, zap.String("error", strutil.Shorten(err.Error(), maxLoggedError)))
+	logFunc(msg, logger.ErrorField(err))
 
 	h.errorResponse(statusCode, msg, problems)
 }

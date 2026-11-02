@@ -6,8 +6,6 @@ import (
 	"github.com/nikita-belan-01/todo_app/internal/core/domain"
 )
 
-const maxLoggedError = 4096
-
 const (
 	statusClientClosedRequest = 499
 	statusCodeUninitialized   = -1

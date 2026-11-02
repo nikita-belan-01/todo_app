@@ -24,11 +24,11 @@ func (e *LenError) Unwrap() error {
 }
 
 type FormatError struct {
-	Want string
+	want string
 }
 
 func (e *FormatError) Error() string {
-	return fmt.Sprintf("invalid format, expected %s", e.Want)
+	return fmt.Sprintf("invalid format, expected %s", e.want)
 }
 
 func (e *FormatError) Unwrap() error {
@@ -52,7 +52,7 @@ func ValidatePhoneNumber(phoneNumber string) error {
 	}
 
 	if !phoneNumberRe.MatchString(phoneNumber) {
-		errs = append(errs, &FormatError{Want: "a leading + followed by digits only"})
+		errs = append(errs, &FormatError{want: "a leading + followed by digits only"})
 	}
 
 	return errors.Join(errs...)

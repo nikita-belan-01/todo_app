@@ -80,7 +80,7 @@ func Trace() Middleware {
 			if err := r.Context().Err(); err != nil && !rw.Written() {
 				log.Debug(
 					"<<< HTTP request aborted",
-					zap.Error(err),
+					logger.ErrorField(err),
 					zap.Duration("latency", time.Since(before)))
 
 				return

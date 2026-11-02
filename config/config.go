@@ -16,7 +16,7 @@ type Config struct {
 
 func New(confPath string) (*Config, error) {
 	if err := loadEnv(confPath); err != nil {
-		return nil, fmt.Errorf("load env by path: %s, %w", confPath, err)
+		return nil, fmt.Errorf("load env by path: %s: %w", confPath, err)
 	}
 
 	logger, err := newLogger()
