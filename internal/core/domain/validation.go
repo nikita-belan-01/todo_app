@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"slices"
 	"strings"
-
-	"github.com/nikita-belan-01/todo_app/pkg/validator"
 )
 
 const maxProblems = 10
@@ -84,46 +82,6 @@ func (v *Validation) addCause(cause error) {
 	v.causes = append(v.causes, cause)
 }
 
-func (v *Validation) AddNullableBool(field string, n Nullable[bool]) {
-	if n.Set && n.Value == nil {
-		v.AddWithCause(field, ErrNullNotAllowed, "must not be null")
-	}
-}
-
-func (v *Validation) AddNullableLen(field string, n Nullable[string], min, max int) {
-	if !n.Set {
-		return
-	}
-
-	if n.Value == nil {
-		v.AddWithCause(field, ErrNullNotAllowed, "must not be null")
-		return
-	}
-
-	v.Add(field, validator.ValidateLen(*n.Value, min, max))
-}
-
-func (v *Validation) AddOptionalLen(field string, n Nullable[string], min, max int) {
-	if !n.Set || n.Value == nil {
-		return
-	}
-
-	v.Add(field, validator.ValidateLen(*n.Value, min, max))
-}
-
-func (v *Validation) AddNullableFunc(field string, n Nullable[string], validate func(string) error) {
-	if !n.Set {
-		return
-	}
-
-	if n.Value == nil {
-		v.AddWithCause(field, ErrNullNotAllowed, "must not be null")
-		return
-	}
-
-	v.Add(field, validate(*n.Value))
-}
-
 func (v *Validation) Err() error {
 	if len(v.problems) == 0 {
 		return nil
@@ -139,5 +97,5 @@ func (v *Validation) Err() error {
 		message = fmt.Sprintf("%s; and %d more problems", message, v.skipped)
 	}
 
-	return NewValidationError(message, v.problems, errors.Join(v.causes...))
+	return newValidationError(message, v.problems, errors.Join(v.causes...))
 }

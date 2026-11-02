@@ -1,11 +1,8 @@
 package domain
 
 import (
-	"errors"
 	"fmt"
 )
-
-var ErrInvalidPagination = errors.New("invalid pagination")
 
 type Pagination struct {
 	Page  int
@@ -23,10 +20,6 @@ func (e *PaginationError) Error() string {
 
 func (e *PaginationError) Unwrap() error {
 	return ErrInvalidPagination
-}
-
-func (e *PaginationError) Field() string {
-	return e.field
 }
 
 func (p Pagination) validate() []*PaginationError {

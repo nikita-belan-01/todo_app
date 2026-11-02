@@ -42,7 +42,7 @@ func (tf *TasksFilter) Validate() error {
 	}
 
 	for _, err := range tf.Pagination.validate() {
-		v.Add(err.Field(), err)
+		v.Add(err.field, err)
 	}
 
 	return v.Err()
