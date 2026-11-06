@@ -78,9 +78,11 @@ func decodeError(err error) error {
 				fmt.Sprintf("request body must be a json object, got %s", strutil.Shorten(typeErr.Value, MaxEchoedValue)),
 				err)
 		}
-		return domain.NewAppError(
+		return domain.NewFieldError(
 			domain.KindInvalidArgument,
-			fmt.Sprintf("field %q: unexpected %s", typeErr.Field, strutil.Shorten(typeErr.Value, MaxEchoedValue)), err)
+			typeErr.Field,
+			fmt.Sprintf("unexpected %s", strutil.Shorten(typeErr.Value, MaxEchoedValue)),
+			err)
 	}
 
 	var syntaxErr *json.SyntaxError
