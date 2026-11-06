@@ -14,6 +14,7 @@ import (
 	"github.com/nikita-belan-01/todo_app/internal/core/delivery/http/middleware"
 	"github.com/nikita-belan-01/todo_app/internal/core/delivery/http/server"
 	"github.com/nikita-belan-01/todo_app/internal/core/repository/postgres/pool"
+	health_delivery_http "github.com/nikita-belan-01/todo_app/internal/features/health/delivery/http"
 	tasks_delivery_http "github.com/nikita-belan-01/todo_app/internal/features/tasks/delivery/http"
 	tasks_postgres "github.com/nikita-belan-01/todo_app/internal/features/tasks/repository/postgres"
 	tasks_service "github.com/nikita-belan-01/todo_app/internal/features/tasks/service"
@@ -27,8 +28,8 @@ import (
 func main() {
 	var configPath string
 
-	flag.StringVar(&configPath, "config", ".env", "config file path")
-	flag.StringVar(&configPath, "c", ".env", "config file path")
+	flag.StringVar(&configPath, "config", "", "config file path")
+	flag.StringVar(&configPath, "c", "", "config file path")
 
 	flag.Parse()
 
@@ -89,6 +90,10 @@ func run(configPath string) error {
 	tasksService := tasks_service.NewTasksService(tasksRepository)
 	tasksDeliveryHTTP := tasks_delivery_http.NewTasksHTTPHandler(&conf.Handler, tasksService)
 
+	appLogger.Debug("initializing features", zap.String("feature", "health"))
+
+	healthDeliveryHTTP := health_delivery_http.NewHTTPHealthHandler(&conf.Handler, pool)
+
 	appLogger.Debug("initializing HTTP server")
 
 	httpServer := server.New(&conf.HTTPServer, appLogger,
@@ -102,6 +107,7 @@ func run(configPath string) error {
 	apiVersionRouter.RegisterRoutes(usersDeliveryHTTP.Routes()...)
 	apiVersionRouter.RegisterRoutes(tasksDeliveryHTTP.Routes()...)
 	httpServer.RegisterAPIRouters(apiVersionRouter)
+	httpServer.RegisterRoutes(healthDeliveryHTTP.Routes()...)
 
 	if err := httpServer.Run(ctx); err != nil {
 		return fmt.Errorf("run HTTP server: %w", err)
