@@ -12,13 +12,13 @@ import (
 )
 
 type UsersHTTPHandler struct {
-	Config       *config.Handler
-	UsersService UsersService
+	config       *config.Handler
+	usersService UsersService
 }
 
 type UsersService interface {
 	CreateUser(ctx context.Context, user *domain.User) (uuid.UUID, error)
-	GetUsers(ctx context.Context, page, limit int) ([]domain.User, error)
+	GetUsers(ctx context.Context, pagination *domain.Pagination) ([]domain.User, error)
 	GetUser(ctx context.Context, userID uuid.UUID) (*domain.User, error)
 	DeleteUser(ctx context.Context, userID uuid.UUID) error
 	PatchUser(ctx context.Context, userID uuid.UUID, patch *domain.UserNullable) (int, error)
@@ -26,8 +26,8 @@ type UsersService interface {
 
 func NewUsersHTTPHandler(config *config.Handler, usersService UsersService) *UsersHTTPHandler {
 	return &UsersHTTPHandler{
-		Config:       config,
-		UsersService: usersService,
+		config:       config,
+		usersService: usersService,
 	}
 }
 

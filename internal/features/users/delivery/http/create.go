@@ -7,11 +7,12 @@ import (
 
 	"github.com/nikita-belan-01/todo_app/internal/core/delivery/http/request"
 	"github.com/nikita-belan-01/todo_app/internal/core/delivery/http/response"
+	"github.com/nikita-belan-01/todo_app/internal/core/delivery/http/utils"
 	"github.com/nikita-belan-01/todo_app/pkg/logger"
 )
 
 func (h UsersHTTPHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), h.Config.RequestTimeout)
+	ctx, cancel := context.WithTimeout(r.Context(), h.config.RequestTimeout)
 	defer cancel()
 
 	log := logger.FromContext(ctx)
@@ -25,11 +26,11 @@ func (h UsersHTTPHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := h.UsersService.CreateUser(ctx, &user)
+	id, err := h.usersService.CreateUser(ctx, &user)
 	if err != nil {
 		responseHandler.ErrorResponse(fmt.Errorf("create user: %w", err))
 		return
 	}
 
-	responseHandler.JSONResponse(userIDResponse{ID: id}, http.StatusCreated)
+	responseHandler.CreatedResponse(utils.CreatedLocation(r, id.String()), userIDResponse{ID: id})
 }

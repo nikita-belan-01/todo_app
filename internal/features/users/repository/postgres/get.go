@@ -2,17 +2,15 @@ package postgres
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/nikita-belan-01/todo_app/internal/core/domain"
 	"github.com/nikita-belan-01/todo_app/internal/core/repository/postgres/utils"
 )
 
-func (r UsersRepository) GetUsers(ctx context.Context, page, limit int) ([]domain.User, error) {
-	offset := utils.CalculateOffset(page, limit)
+func (r UsersRepository) GetUsers(ctx context.Context, pagination *domain.Pagination) ([]domain.User, error) {
+	offset := utils.CalculateOffset(pagination.Page, pagination.Limit)
 
 	rows, err := r.pool.Query(
 		ctx,
@@ -20,15 +18,16 @@ func (r UsersRepository) GetUsers(ctx context.Context, page, limit int) ([]domai
 				id, 
 				name, 
 				surname, 
-				phone_number 
+				phone_number,
+				version 
 		FROM todo_app.users
 		ORDER BY created_at, id
 		LIMIT $1
 		OFFSET $2`,
-		limit,
+		pagination.Limit,
 		offset)
 	if err != nil {
-		return nil, fmt.Errorf("select users: %w", err)
+		return nil, fmt.Errorf("query: %w", utils.TranslateError(err))
 	}
 	defer rows.Close()
 
@@ -40,14 +39,15 @@ func (r UsersRepository) GetUsers(ctx context.Context, page, limit int) ([]domai
 			&user.ID,
 			&user.Name,
 			&user.Surname,
-			&user.PhoneNumber); err != nil {
-			return nil, fmt.Errorf("scan row: %w", err)
+			&user.PhoneNumber,
+			&user.Version); err != nil {
+			return nil, fmt.Errorf("scan row: %w", utils.TranslateError(err))
 		}
 		users = append(users, user)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterate users: %w", err)
+		return nil, fmt.Errorf("iterate rows: %w", utils.TranslateError(err))
 	}
 
 	return users, nil
@@ -58,21 +58,26 @@ func (r UsersRepository) GetUser(ctx context.Context, userID uuid.UUID) (*domain
 
 	if err := r.pool.QueryRow(
 		ctx,
-		`SELECT id, name, surname, phone_number, version
-			FROM todo_app.users
-			WHERE id=$1`, userID).
+		`SELECT 
+				name, 
+				surname, 
+				phone_number, 
+				version
+		FROM todo_app.users
+		WHERE id = $1`, userID).
 		Scan(
-			&user.ID,
 			&user.Name,
 			&user.Surname,
 			&user.PhoneNumber,
 			&user.Version); err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, domain.NewNotFoundError("user not found", err)
+		if utils.IsNoRows(err) {
+			return nil, domain.NewNotFoundError(domain.ErrUserNotFound)
 		}
 
-		return nil, fmt.Errorf("scan row: %w", err)
+		return nil, fmt.Errorf("scan row: %w", utils.TranslateError(err))
 	}
+
+	user.ID = userID
 
 	return &user, nil
 }

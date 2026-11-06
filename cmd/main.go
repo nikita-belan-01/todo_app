@@ -8,12 +8,16 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/nikita-belan-01/todo_app/config"
 	"github.com/nikita-belan-01/todo_app/internal/core/delivery/http/middleware"
 	"github.com/nikita-belan-01/todo_app/internal/core/delivery/http/server"
 	"github.com/nikita-belan-01/todo_app/internal/core/repository/postgres/pool"
 	health_delivery_http "github.com/nikita-belan-01/todo_app/internal/features/health/delivery/http"
+	tasks_delivery_http "github.com/nikita-belan-01/todo_app/internal/features/tasks/delivery/http"
+	tasks_postgres "github.com/nikita-belan-01/todo_app/internal/features/tasks/repository/postgres"
+	tasks_service "github.com/nikita-belan-01/todo_app/internal/features/tasks/service"
 	users_delivery_http "github.com/nikita-belan-01/todo_app/internal/features/users/delivery/http"
 	users_postgres "github.com/nikita-belan-01/todo_app/internal/features/users/repository/postgres"
 	users_service "github.com/nikita-belan-01/todo_app/internal/features/users/service"
@@ -56,6 +60,13 @@ func run(configPath string) error {
 		}
 	}()
 
+	loc, err := time.LoadLocation(conf.LocalTime)
+	if err != nil {
+		appLogger.Fatal("load location", zap.Error(err))
+	}
+
+	time.Local = loc
+
 	appLogger.Debug("initializing postgres connection pool")
 
 	poolCtx, poolCancel := context.WithTimeout(ctx, conf.Postgres.PingTimeout)
@@ -73,6 +84,12 @@ func run(configPath string) error {
 	usersService := users_service.NewUsersService(usersRepository)
 	usersDeliveryHTTP := users_delivery_http.NewUsersHTTPHandler(&conf.Handler, usersService)
 
+	appLogger.Debug("initializing features", zap.String("feature", "tasks"))
+
+	tasksRepository := tasks_postgres.NewTasksRepository(pool)
+	tasksService := tasks_service.NewTasksService(tasksRepository)
+	tasksDeliveryHTTP := tasks_delivery_http.NewTasksHTTPHandler(&conf.Handler, tasksService)
+
 	appLogger.Debug("initializing features", zap.String("feature", "health"))
 
 	healthDeliveryHTTP := health_delivery_http.NewHTTPHealthHandler(&conf.Handler, pool)
@@ -88,6 +105,7 @@ func run(configPath string) error {
 
 	apiVersionRouter := server.NewApiVersionRouter(server.ApiVersion1)
 	apiVersionRouter.RegisterRoutes(usersDeliveryHTTP.Routes()...)
+	apiVersionRouter.RegisterRoutes(tasksDeliveryHTTP.Routes()...)
 	httpServer.RegisterAPIRouters(apiVersionRouter)
 	httpServer.RegisterRoutes(healthDeliveryHTTP.Routes()...)
 

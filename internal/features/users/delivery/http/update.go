@@ -13,7 +13,7 @@ import (
 )
 
 func (h UsersHTTPHandler) PatchUser(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), h.Config.RequestTimeout)
+	ctx, cancel := context.WithTimeout(r.Context(), h.config.RequestTimeout)
 	defer cancel()
 
 	log := logger.FromContext(ctx)
@@ -23,7 +23,7 @@ func (h UsersHTTPHandler) PatchUser(w http.ResponseWriter, r *http.Request) {
 
 	userID, err := utils.GetUUIDPathValue(r, userIDPathKey)
 	if err != nil {
-		responseHandler.ErrorResponse(domain.NewBadRequestError("invalid user id", err))
+		responseHandler.ErrorResponse(domain.NewAppError(domain.KindInvalidArgument, "invalid user id", err))
 		return
 	}
 
@@ -33,7 +33,7 @@ func (h UsersHTTPHandler) PatchUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	version, err := h.UsersService.PatchUser(
+	version, err := h.usersService.PatchUser(
 		ctx, userID, &patch)
 	if err != nil {
 		responseHandler.ErrorResponse(fmt.Errorf("patch user: %w", err))

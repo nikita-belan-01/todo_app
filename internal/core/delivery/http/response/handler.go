@@ -1,6 +1,7 @@
 package response
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -33,36 +34,48 @@ func (h HTTPResponseHandler) JSONResponse(responseBody any, statusCode int) {
 	h.rw.WriteHeader(statusCode)
 
 	if err := json.NewEncoder(h.rw).Encode(responseBody); err != nil {
-		h.log.Error("write HTTP response", zap.Error(err))
+		h.log.Error("write HTTP response", logger.ErrorField(err))
 	}
 }
+
 func (h HTTPResponseHandler) PanicResponse(p any, msg string) {
 	err := fmt.Errorf("unexpected panic: %v", p)
 
-	h.log.Error(msg, zap.Error(err))
+	h.log.Error(msg, logger.ErrorField(err))
 
-	h.errorResponse(http.StatusInternalServerError, msg)
+	h.errorResponse(http.StatusInternalServerError, msg, nil)
 }
 
 func (h HTTPResponseHandler) ErrorResponse(err error) {
-	var (
-		statusCode int
-		logFunc    func(string, ...zap.Field)
-	)
 	if err == nil {
 		return
 	}
 
-	var cErr *domain.ClientError
-	var msg string
-	if errors.As(err, &cErr) {
-		statusCode = cErr.StatusCode()
-		msg = cErr.Error()
-	} else {
-		statusCode = http.StatusInternalServerError
-		msg = "internal server error"
+	switch {
+	case errors.Is(err, context.Canceled):
+		h.log.Debug("request canceled by client", logger.ErrorField(err))
+		h.errorResponse(statusClientClosedRequest, "client closed request", nil)
+		return
+	case errors.Is(err, context.DeadlineExceeded):
+		err = domain.NewAppError(domain.KindUnavailable, "request timed out", err)
 	}
 
+	statusCode, ok := statusByKind[domain.KindOf(err)]
+	if !ok {
+		statusCode = http.StatusInternalServerError
+	}
+
+	msg := "internal server error"
+
+	var problems []domain.Problem
+
+	var appErr *domain.AppError
+	if errors.As(err, &appErr) && statusCode != http.StatusInternalServerError {
+		msg = appErr.Message()
+		problems = appErr.Problems()
+	}
+
+	var logFunc func(string, ...zap.Field)
 	switch {
 	case statusCode == http.StatusNotFound:
 		logFunc = h.log.Debug
@@ -73,11 +86,13 @@ func (h HTTPResponseHandler) ErrorResponse(err error) {
 		logFunc = h.log.Error
 	}
 
-	logFunc(msg, zap.Error(err))
+	logFunc(msg, logger.ErrorField(err))
 
-	h.errorResponse(statusCode, msg)
+	h.errorResponse(statusCode, msg, problems)
 }
 
-func (h HTTPResponseHandler) errorResponse(statusCode int, msg string) {
-	h.JSONResponse(map[string]string{"message": msg}, statusCode)
+func (h HTTPResponseHandler) CreatedResponse(location string, responseBody any) {
+	h.rw.Header().Set("Location", location)
+
+	h.JSONResponse(responseBody, http.StatusCreated)
 }

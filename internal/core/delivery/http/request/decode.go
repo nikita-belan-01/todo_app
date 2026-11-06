@@ -9,59 +9,95 @@ import (
 	"strings"
 
 	"github.com/nikita-belan-01/todo_app/internal/core/domain"
+	"github.com/nikita-belan-01/todo_app/pkg/strutil"
 )
+
+const MaxEchoedValue = 64
 
 const unknownFieldPrefix = "json: unknown field"
 
-func Decode[T interface{ BuildDomain() DT }, DT any](r *http.Request) (DT, error) {
-	var dto T
+func DecodeOptional[T interface{ BuildDomain() (DT, error) }, DT any](r *http.Request) (DT, error) {
+	return decode[T](r, true)
+}
+
+func Decode[T interface{ BuildDomain() (DT, error) }, DT any](r *http.Request) (DT, error) {
+	return decode[T](r, false)
+}
+
+func decode[T interface{ BuildDomain() (DT, error) }, DT any](r *http.Request, allowEmpty bool) (DT, error) {
+	var dto *T
 	var zero DT
 
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
 
 	if err := dec.Decode(&dto); err != nil {
+		if allowEmpty && errors.Is(err, io.EOF) {
+			var empty T
+
+			return empty.BuildDomain()
+		}
+
 		return zero, decodeError(err)
 	}
 
-	var extra json.RawMessage
-	if err := dec.Decode(&extra); !errors.Is(err, io.EOF) {
-		return zero, domain.NewBadRequestError("unexpected content after json body", err)
+	if dto == nil {
+		return zero, domain.NewAppError(domain.KindInvalidArgument, "request body must be a json object", nil)
 	}
 
-	return dto.BuildDomain(), nil
+	var extra json.RawMessage
+	switch err := dec.Decode(&extra); {
+	case err == nil:
+		return zero, domain.NewAppError(domain.KindInvalidArgument, "unexpected content after json body", nil)
+	case !errors.Is(err, io.EOF):
+		return zero, decodeError(err)
+	}
+
+	return (*dto).BuildDomain()
 }
 
 func decodeError(err error) error {
 	var maxBytesErr *http.MaxBytesError
 	if errors.As(err, &maxBytesErr) {
-		return domain.NewRequestEntityTooLargeError(fmt.Sprintf("request body must not exceed %d bytes", maxBytesErr.Limit), err)
+		return domain.NewAppError(domain.KindTooLarge, fmt.Sprintf("request body must not exceed %d bytes", maxBytesErr.Limit), err)
 	}
 
 	if errors.Is(err, io.EOF) {
-		return domain.NewBadRequestError("empty request body", err)
+		return domain.NewAppError(domain.KindInvalidArgument, "empty request body", err)
 	}
 
 	if errors.Is(err, io.ErrUnexpectedEOF) {
-		return domain.NewBadRequestError("malformed json body: unexpected end of input", err)
+		return domain.NewAppError(domain.KindInvalidArgument, "malformed json body: unexpected end of input", err)
 	}
 
 	var typeErr *json.UnmarshalTypeError
 	if errors.As(err, &typeErr) {
-		return domain.NewBadRequestError(
-			fmt.Sprintf("field %q: expected %s, got %s", typeErr.Field, typeErr.Type, typeErr.Value), err)
+		if typeErr.Field == "" {
+			return domain.NewAppError(
+				domain.KindInvalidArgument,
+				fmt.Sprintf("request body must be a json object, got %s", strutil.Shorten(typeErr.Value, MaxEchoedValue)),
+				err)
+		}
+		return domain.NewFieldError(
+			domain.KindInvalidArgument,
+			typeErr.Field,
+			fmt.Sprintf("unexpected %s", strutil.Shorten(typeErr.Value, MaxEchoedValue)),
+			err)
 	}
 
 	var syntaxErr *json.SyntaxError
 	if errors.As(err, &syntaxErr) {
-		return domain.NewBadRequestError(
+		return domain.NewAppError(
+			domain.KindInvalidArgument,
 			fmt.Sprintf("malformed json body at offset %d", syntaxErr.Offset), err)
 	}
 
-	if strings.HasPrefix(err.Error(), unknownFieldPrefix) {
-		return domain.NewBadRequestError(
-			fmt.Sprintf("unknown field %s", strings.Trim(err.Error(), unknownFieldPrefix)), err)
+	if field, ok := strings.CutPrefix(err.Error(), unknownFieldPrefix); ok {
+		return domain.NewAppError(
+			domain.KindInvalidArgument,
+			fmt.Sprintf("unknown field %s", strutil.Shorten(strings.TrimSpace(field), MaxEchoedValue)), err)
 	}
 
-	return domain.NewBadRequestError("invalid json body request", err)
+	return domain.NewAppError(domain.KindInvalidArgument,
+		fmt.Sprintf("malformed value in request body: %s", strutil.Shorten(err.Error(), MaxEchoedValue)), err)
 }

@@ -3,50 +3,62 @@ package utils
 import (
 	"net/http"
 	"strconv"
+
+	"github.com/nikita-belan-01/todo_app/internal/core/domain"
 )
 
 const (
-	PageQueryKey     = "page"
-	PageDefaultValue = 1
-	PageMaxValue     = 1_000_000
-
-	LimitQueryKey     = "limit"
-	LimitDefaultValue = 10
-	LimitMaxValue     = 100
+	pageQueryKey  = "page"
+	limitQueryKey = "limit"
 )
 
-type Pagination struct {
-	Page  int
-	Limit int
-}
-
-func GetIntQueryParam(r *http.Request, key string, defaultValue int) int {
+func GetIntQueryParam(r *http.Request, key string, defaultValue int) (int, error) {
 	param := r.URL.Query().Get(key)
 	if param == "" {
-		return defaultValue
+		return defaultValue, nil
 	}
 
 	value, err := strconv.Atoi(param)
 	if err != nil {
-		return defaultValue
+		return 0, domain.NewAppError(
+			domain.KindInvalidArgument,
+			"invalid format, expected an integer",
+			domain.ErrInvalidArgument)
 	}
 
-	return value
+	return value, nil
 }
 
-func GetPagination(r *http.Request) Pagination {
-	page := GetIntQueryParam(r, PageQueryKey, PageDefaultValue)
-	if page <= 0 || page > PageMaxValue {
-		page = PageDefaultValue
+func GetPagination(r *http.Request) (domain.Pagination, error) {
+	var v domain.Validation
+
+	page, err := GetIntQueryParam(r, pageQueryKey, domain.PageDefaultValue)
+	if err != nil {
+		v.Add(pageQueryKey, err)
 	}
 
-	limit := GetIntQueryParam(r, LimitQueryKey, LimitDefaultValue)
-	if limit <= 0 || limit > LimitMaxValue {
-		limit = LimitDefaultValue
+	limit, err := GetIntQueryParam(r, limitQueryKey, domain.LimitDefaultValue)
+	if err != nil {
+		v.Add(limitQueryKey, err)
 	}
 
-	return Pagination{
+	if err := v.Err(); err != nil {
+		return domain.Pagination{}, err
+	}
+
+	return domain.Pagination{
 		Page:  page,
 		Limit: limit,
+	}, nil
+}
+
+func RejectQueryParams(r *http.Request, message string) error {
+	if r.URL.RawQuery != "" {
+		return domain.NewAppError(
+			domain.KindInvalidArgument,
+			message,
+			domain.ErrInvalidArgument)
 	}
+
+	return nil
 }
