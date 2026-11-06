@@ -1,21 +1,23 @@
 include .env
 export
 
-DC              := docker compose
-PG_SERVICE      := todo-app-postgres
-MIGRATE_SERVICE := todo-app-postgres-migrate
-FORWARD_SERVICE := port-forwarder
+DC				:= docker compose
+PG_SERVICE		:= todo-app-postgres
+SERVER			:= todo-app-server
+MIGRATE_SERVICE	:= todo-app-postgres-migrate
+FORWARD_SERVICE	:= port-forwarder
 
-PASSWORD_ENCODER    := $(PROJECT_ROOT)/scripts/encode_db_password.sh
+PASSWORD_ENCODER	:= $(PROJECT_ROOT)/scripts/encode_db_password.sh
 
-DATABASE_PASSWORD   := $(shell $(PASSWORD_ENCODER) $(POSTGRES_PASSWORD_FILE))
-DATABASE_URL        := postgresql://$(POSTGRES_USER):$(DATABASE_PASSWORD)@$(PG_SERVICE):5432/$(POSTGRES_DB)?sslmode=disable
+DATABASE_PASSWORD	:= $(shell $(PASSWORD_ENCODER) $(POSTGRES_PASSWORD_FILE))
+DATABASE_URL		:= postgresql://$(POSTGRES_USER):$(DATABASE_PASSWORD)@$(PG_SERVICE):5432/$(POSTGRES_DB)?sslmode=disable
 
-MIGRATE             := $(DC) run --rm $(MIGRATE_SERVICE)
+MIGRATE				:= $(DC) run --rm $(MIGRATE_SERVICE)
 
 .PHONY: guard-% check-postgres-env check-project-root-env check-postgres-password \
         migrate-create migrate-up migrate-down migrate-force-previous \
-        env-up env-down env-cleanup env-port-forward env-port-close
+		env-up env-stop env-cleanup env-port-forward env-port-close \
+		app-run app-deploy app-logs ps
 
 guard-%:
 	@if [ -z '$($(*))' ]; then \
@@ -83,8 +85,8 @@ migrate-force-previous: check-project-root-env check-postgres-env check-postgres
 env-up: check-project-root-env check-postgres-env check-postgres-password
 	@$(DC) up -d $(PG_SERVICE)
 
-env-down:
-	@$(DC) down $(PG_SERVICE) $(FORWARD_SERVICE)
+env-stop:
+	@$(DC) stop $(PG_SERVICE) $(FORWARD_SERVICE)
 
 env-cleanup: check-project-root-env
 	@read -p "Erase the volume? There is a risk of data loss [y/N]: " ans; \
@@ -115,7 +117,16 @@ env-port-forward: check-postgres-env
 env-port-close:
 	@$(DC) stop $(FORWARD_SERVICE)
 
-app-run:
+app-run: check-project-root-env
 	@export LOG_DIR=$(PROJECT_ROOT)/out/logs && \
 	go mod tidy && \
-	go run cmd/main.go
+	go run cmd/main.go -c .env
+
+app-deploy: check-project-root-env check-postgres-env check-postgres-password
+		@docker compose up -d --build --wait $(SERVER)
+
+app-logs:
+	@docker compose logs -f $(SERVER)
+
+ps:
+	@docker compose ps

@@ -70,6 +70,11 @@ func Trace() Middleware {
 			log := logger.FromContext(ctx)
 			rw := response.NewResponseWriter(w)
 
+			if r.URL.Path == "/health" || r.URL.Path == "/ready" {
+				next.ServeHTTP(rw, r)
+				return
+			}
+
 			before := time.Now()
 			log.Debug(
 				">>> incoming HTTP request",

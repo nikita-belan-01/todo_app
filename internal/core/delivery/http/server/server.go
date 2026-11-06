@@ -90,3 +90,9 @@ func (s *Server) RegisterAPIRouters(routers ...*ApiVersionRouter) {
 		)
 	}
 }
+
+func (s *Server) RegisterRoutes(routes ...Route) {
+	for _, route := range routes {
+		s.mux.Handle(fmt.Sprintf("%s %s", route.Method, route.Path), route.Handler)
+	}
+}
