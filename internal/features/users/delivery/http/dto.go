@@ -14,12 +14,12 @@ type createUserRequest struct {
 	PhoneNumber string `json:"phone_number"`
 }
 
-func (r createUserRequest) BuildDomain() domain.User {
+func (r createUserRequest) BuildDomain() (domain.User, error) {
 	return domain.User{
 		Name:        r.Name,
 		Surname:     r.Surname,
 		PhoneNumber: r.PhoneNumber,
-	}
+	}, nil
 }
 
 type userResponse struct {
@@ -27,6 +27,7 @@ type userResponse struct {
 	Name        string    `json:"name"`
 	Surname     string    `json:"surname"`
 	PhoneNumber string    `json:"phone_number"`
+	Version     int       `json:"version"`
 }
 
 type userIDResponse struct {
@@ -44,6 +45,7 @@ func BuildUserResponse(user *domain.User) userResponse {
 		Name:        user.Name,
 		Surname:     user.Surname,
 		PhoneNumber: user.PhoneNumber,
+		Version:     user.Version,
 	}
 }
 
@@ -57,15 +59,17 @@ func BuildUsersResponse(users []domain.User) []userResponse {
 }
 
 type patchUserRequest struct {
+	Version     int                    `json:"version"`
 	Name        types.Nullable[string] `json:"name"`
 	Surname     types.Nullable[string] `json:"surname"`
 	PhoneNumber types.Nullable[string] `json:"phone_number"`
 }
 
-func (r patchUserRequest) BuildDomain() domain.UserNullable {
+func (r patchUserRequest) BuildDomain() (domain.UserNullable, error) {
 	return domain.UserNullable{
+		Version:     r.Version,
 		Name:        r.Name.Nullable,
 		Surname:     r.Surname.Nullable,
 		PhoneNumber: r.PhoneNumber.Nullable,
-	}
+	}, nil
 }

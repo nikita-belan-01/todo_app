@@ -9,10 +9,6 @@ type ResponseWriter struct {
 	statusCode int
 }
 
-const (
-	statusCodeUninitialized = -1
-)
-
 func NewResponseWriter(w http.ResponseWriter) *ResponseWriter {
 	return &ResponseWriter{
 		ResponseWriter: w,
@@ -35,4 +31,8 @@ func (rw *ResponseWriter) GetStatusCodeOrPanic() int {
 	}
 
 	return rw.statusCode
+}
+
+func (rw *ResponseWriter) Written() bool {
+	return rw.statusCode != statusCodeUninitialized
 }

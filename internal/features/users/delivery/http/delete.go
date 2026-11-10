@@ -12,7 +12,7 @@ import (
 )
 
 func (h *UsersHTTPHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), h.Config.RequestTimeout)
+	ctx, cancel := context.WithTimeout(r.Context(), h.config.RequestTimeout)
 	defer cancel()
 
 	log := logger.FromContext(ctx)
@@ -22,11 +22,11 @@ func (h *UsersHTTPHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 
 	userID, err := utils.GetUUIDPathValue(r, userIDPathKey)
 	if err != nil {
-		responseHandler.ErrorResponse(domain.NewBadRequestError("invalid user id", err))
+		responseHandler.ErrorResponse(domain.NewAppError(domain.KindInvalidArgument, "invalid user id", err))
 		return
 	}
 
-	if err := h.UsersService.DeleteUser(ctx, userID); err != nil {
+	if err := h.usersService.DeleteUser(ctx, userID); err != nil {
 		responseHandler.ErrorResponse(fmt.Errorf("delete user: %w", err))
 		return
 	}

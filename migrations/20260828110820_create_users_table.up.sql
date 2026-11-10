@@ -10,3 +10,5 @@ CREATE TABLE todo_app.users(
     CONSTRAINT users_surname_length CHECK(char_length(surname) BETWEEN 3 AND 100),
     CONSTRAINT users_phone_number_valid CHECK(phone_number ~ '^\+[0-9]+$'
                                                 AND char_length(phone_number) BETWEEN 10 AND 15));
+
+CREATE INDEX users_created_at_id_idx ON todo_app.users(created_at, id);

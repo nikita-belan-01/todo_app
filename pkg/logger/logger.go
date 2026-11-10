@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/nikita-belan-01/todo_app/pkg/strutil"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -15,6 +16,12 @@ import (
 type loggerKey string
 
 var ErrInvalidLogLevel = errors.New("invalid log level")
+
+const maxLoggedError = 4096
+
+func ErrorField(err error) zap.Field {
+	return zap.String("error", strutil.Shorten(err.Error(), maxLoggedError))
+}
 
 const (
 	LoggerKeyName loggerKey = "log"

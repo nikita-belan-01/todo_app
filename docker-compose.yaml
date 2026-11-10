@@ -5,6 +5,7 @@ services:
       dockerfile: ${PROJECT_ROOT}/Dockerfile
     container_name: todo-app-server
     environment:
+      - LOCAL_TIME=${LOCAL_TIME:?LOCAL_TIME is not set}
       - LOG_LEVEL=${LOG_LEVEL:?LOG_LEVEL is not set}
       - HTTP_SERVER_READ_TIMEOUT=${HTTP_SERVER_READ_TIMEOUT:?HTTP_SERVER_READ_TIMEOUT is not set}
       - HTTP_SERVER_WRITE_TIMEOUT=${HTTP_SERVER_WRITE_TIMEOUT:?HTTP_SERVER_WRITE_TIMEOUT is not set}

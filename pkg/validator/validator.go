@@ -11,10 +11,35 @@ var (
 	ErrInvalidArgument = errors.New("invalid argument")
 )
 
+type LenError struct {
+	min, max, got int
+}
+
+func (e *LenError) Error() string {
+	return fmt.Sprintf("length must be between %d and %d characters, got %d", e.min, e.max, e.got)
+}
+
+func (e *LenError) Unwrap() error {
+	return ErrInvalidLen
+}
+
+type FormatError struct {
+	want string
+}
+
+func (e *FormatError) Error() string {
+	return fmt.Sprintf("invalid format, expected %s", e.want)
+}
+
+func (e *FormatError) Unwrap() error {
+	return ErrInvalidArgument
+}
+
+var phoneNumberRe = regexp.MustCompile(`^\+[0-9]+$`)
+
 func ValidateLen(s string, min, max int) error {
-	rs := []rune(s)
-	if len(rs) < min || len(rs) > max {
-		return fmt.Errorf("%w: len must be between %d and %d", ErrInvalidLen, min, max)
+	if n := len([]rune(s)); n < min || n > max {
+		return &LenError{min: min, max: max, got: n}
 	}
 
 	return nil
@@ -23,13 +48,11 @@ func ValidateLen(s string, min, max int) error {
 func ValidatePhoneNumber(phoneNumber string) error {
 	var errs []error
 	if err := ValidateLen(phoneNumber, 10, 15); err != nil {
-		errs = append(errs, fmt.Errorf("phone number: %w", err))
+		errs = append(errs, err)
 	}
 
-	re := regexp.MustCompile(`^\+[0-9]+$`)
-
-	if !re.MatchString(phoneNumber) {
-		errs = append(errs, fmt.Errorf("phone number: invalid format: %w", ErrInvalidArgument))
+	if !phoneNumberRe.MatchString(phoneNumber) {
+		errs = append(errs, &FormatError{want: "a leading + followed by digits only"})
 	}
 
 	return errors.Join(errs...)
