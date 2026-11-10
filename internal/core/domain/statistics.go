@@ -15,7 +15,7 @@ type StatisticsFilter struct {
 func (f StatisticsFilter) Validate() error {
 	var v Validation
 
-	if f.From != nil && f.To != nil && f.To.Before(*f.From) {
+	if f.From != nil && f.To != nil && f.To.Compare(*f.From) <= 0 {
 		v.AddWithCause("to", ErrInvalidDateRange, "must not be earlier than from")
 	}
 
