@@ -1,11 +1,16 @@
 package utils
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/nikita-belan-01/todo_app/internal/core/domain"
 )
+
+var ErrInvalidQueryParam = errors.New("invalid query parameter")
 
 const (
 	pageQueryKey  = "page"
@@ -23,7 +28,41 @@ func GetIntQueryParam(r *http.Request, key string, defaultValue int) (int, error
 		return 0, domain.NewAppError(
 			domain.KindInvalidArgument,
 			"invalid format, expected an integer",
-			domain.ErrInvalidArgument)
+			ErrInvalidQueryParam)
+	}
+
+	return value, nil
+}
+
+func GetDateQueryParam(r *http.Request, key string) (*time.Time, error) {
+	param := r.URL.Query().Get(key)
+	if param == "" {
+		return nil, nil
+	}
+
+	value, err := time.Parse(time.DateOnly, param)
+	if err != nil {
+		return nil, domain.NewAppError(
+			domain.KindInvalidArgument,
+			"invalid format, expected a date",
+			ErrInvalidQueryParam)
+	}
+
+	return &value, nil
+}
+
+func GetUUIDQueryParam(r *http.Request, key string) (uuid.UUID, error) {
+	param := r.URL.Query().Get(key)
+	if param == "" {
+		return uuid.Nil, nil
+	}
+
+	value, err := uuid.Parse(param)
+	if err != nil {
+		return uuid.Nil, domain.NewAppError(
+			domain.KindInvalidArgument,
+			"invalid format, expected a uuid",
+			ErrInvalidQueryParam)
 	}
 
 	return value, nil

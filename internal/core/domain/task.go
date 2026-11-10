@@ -19,6 +19,16 @@ type Task struct {
 	CompletedAt *time.Time
 }
 
+func (t Task) CompletionDuration() *time.Duration {
+	if !t.Completed || t.CompletedAt == nil {
+		return nil
+	}
+
+	duration := t.CompletedAt.Sub(t.CreatedAt)
+
+	return &duration
+}
+
 type TasksFilter struct {
 	UserIDs     uuid.UUIDs
 	IsCompleted *bool

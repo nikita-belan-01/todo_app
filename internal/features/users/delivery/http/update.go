@@ -8,7 +8,6 @@ import (
 	"github.com/nikita-belan-01/todo_app/internal/core/delivery/http/request"
 	"github.com/nikita-belan-01/todo_app/internal/core/delivery/http/response"
 	"github.com/nikita-belan-01/todo_app/internal/core/delivery/http/utils"
-	"github.com/nikita-belan-01/todo_app/internal/core/domain"
 	"github.com/nikita-belan-01/todo_app/pkg/logger"
 )
 
@@ -23,7 +22,7 @@ func (h UsersHTTPHandler) PatchUser(w http.ResponseWriter, r *http.Request) {
 
 	userID, err := utils.GetUUIDPathValue(r, userIDPathKey)
 	if err != nil {
-		responseHandler.ErrorResponse(domain.NewAppError(domain.KindInvalidArgument, "invalid user id", err))
+		responseHandler.ErrorResponse(err)
 		return
 	}
 

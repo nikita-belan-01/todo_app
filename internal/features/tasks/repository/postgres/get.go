@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/nikita-belan-01/todo_app/internal/core/domain"
@@ -12,40 +13,42 @@ import (
 func (r TasksRepository) SearchTasks(ctx context.Context, tasksFilter *domain.TasksFilter) ([]domain.Task, error) {
 	offset := utils.CalculateOffset(tasksFilter.Pagination.Page, tasksFilter.Pagination.Limit)
 
-	query := `SELECT
-					id,
-					user_id,
-					title,
-					description,
-					created_at,
-					completed,
-					completed_at,
-					version
-			FROM todo_app.tasks
-			%s
-			ORDER BY created_at, id
-			LIMIT $1
-			OFFSET $2`
+	var queryBuilder strings.Builder
+
+	queryBuilder.WriteString(`SELECT
+									id,
+									user_id,
+									title,
+									description,
+									created_at,
+									completed,
+									completed_at,
+									version
+							FROM todo_app.tasks`)
 
 	args := []any{tasksFilter.Pagination.Limit, offset}
+	var conditions []string
 
-	switch {
-	case tasksFilter.UserIDs != nil && tasksFilter.IsCompleted != nil:
-		query = fmt.Sprintf(query, "WHERE user_id = ANY($3) AND completed = $4")
-		args = append(args, tasksFilter.UserIDs, tasksFilter.IsCompleted)
-	case tasksFilter.UserIDs != nil && tasksFilter.IsCompleted == nil:
-		query = fmt.Sprintf(query, "WHERE user_id = ANY($3)")
+	if tasksFilter.UserIDs != nil {
 		args = append(args, tasksFilter.UserIDs)
-	case tasksFilter.UserIDs == nil && tasksFilter.IsCompleted != nil:
-		query = fmt.Sprintf(query, "WHERE completed = $3")
-		args = append(args, tasksFilter.IsCompleted)
-	default:
-		query = fmt.Sprintf(query, "")
+		conditions = append(conditions, fmt.Sprintf("user_id = ANY($%d)", len(args)))
 	}
+
+	if tasksFilter.IsCompleted != nil {
+		args = append(args, tasksFilter.IsCompleted)
+		conditions = append(conditions, fmt.Sprintf("completed = $%d", len(args)))
+	}
+
+	if len(conditions) > 0 {
+		queryBuilder.WriteString(" WHERE ")
+		queryBuilder.WriteString(strings.Join(conditions, "\nAND "))
+	}
+
+	queryBuilder.WriteString("\nORDER BY created_at, id LIMIT $1 OFFSET $2")
 
 	rows, err := r.pool.Query(
 		ctx,
-		query,
+		queryBuilder.String(),
 		args...)
 	if err != nil {
 		return nil, fmt.Errorf("query: %w", utils.TranslateError(err))
