@@ -15,6 +15,9 @@ import (
 	"github.com/nikita-belan-01/todo_app/internal/core/delivery/http/server"
 	"github.com/nikita-belan-01/todo_app/internal/core/repository/postgres/pool"
 	health_delivery_http "github.com/nikita-belan-01/todo_app/internal/features/health/delivery/http"
+	statistics_delivery_http "github.com/nikita-belan-01/todo_app/internal/features/statistics/delivery/http"
+	statistics_postgres "github.com/nikita-belan-01/todo_app/internal/features/statistics/repository/postgres"
+	statistics_service "github.com/nikita-belan-01/todo_app/internal/features/statistics/service"
 	tasks_delivery_http "github.com/nikita-belan-01/todo_app/internal/features/tasks/delivery/http"
 	tasks_postgres "github.com/nikita-belan-01/todo_app/internal/features/tasks/repository/postgres"
 	tasks_service "github.com/nikita-belan-01/todo_app/internal/features/tasks/service"
@@ -90,6 +93,12 @@ func run(configPath string) error {
 	tasksService := tasks_service.NewTasksService(tasksRepository)
 	tasksDeliveryHTTP := tasks_delivery_http.NewTasksHTTPHandler(&conf.Handler, tasksService)
 
+	appLogger.Debug("initializing features", zap.String("feature", "statistics"))
+
+	statisticsRepository := statistics_postgres.NewStatisticsRepository(pool)
+	statisticsService := statistics_service.NewStatisticsService(statisticsRepository)
+	statisticsDeliveryHTTP := statistics_delivery_http.NewTasksHTTPHandler(&conf.Handler, statisticsService)
+
 	appLogger.Debug("initializing features", zap.String("feature", "health"))
 
 	healthDeliveryHTTP := health_delivery_http.NewHTTPHealthHandler(&conf.Handler, pool)
@@ -106,6 +115,8 @@ func run(configPath string) error {
 	apiVersionRouter := server.NewApiVersionRouter(server.ApiVersion1)
 	apiVersionRouter.RegisterRoutes(usersDeliveryHTTP.Routes()...)
 	apiVersionRouter.RegisterRoutes(tasksDeliveryHTTP.Routes()...)
+	apiVersionRouter.RegisterRoutes(statisticsDeliveryHTTP.Routes()...)
+
 	httpServer.RegisterAPIRouters(apiVersionRouter)
 	httpServer.RegisterRoutes(healthDeliveryHTTP.Routes()...)
 
