@@ -40,7 +40,7 @@ func GetDateQueryParam(r *http.Request, key string) (*time.Time, error) {
 		return nil, nil
 	}
 
-	value, err := time.Parse(time.DateOnly, param)
+	value, err := time.ParseInLocation(time.DateOnly, param, time.Local)
 	if err != nil {
 		return nil, domain.NewAppError(
 			domain.KindInvalidArgument,
@@ -51,21 +51,21 @@ func GetDateQueryParam(r *http.Request, key string) (*time.Time, error) {
 	return &value, nil
 }
 
-func GetUUIDQueryParam(r *http.Request, key string) (uuid.UUID, error) {
+func GetUUIDQueryParam(r *http.Request, key string) (*uuid.UUID, error) {
 	param := r.URL.Query().Get(key)
 	if param == "" {
-		return uuid.Nil, nil
+		return nil, nil
 	}
 
 	value, err := uuid.Parse(param)
 	if err != nil {
-		return uuid.Nil, domain.NewAppError(
+		return nil, domain.NewAppError(
 			domain.KindInvalidArgument,
 			"invalid format, expected a uuid",
 			ErrInvalidQueryParam)
 	}
 
-	return value, nil
+	return &value, nil
 }
 
 func GetPagination(r *http.Request) (domain.Pagination, error) {

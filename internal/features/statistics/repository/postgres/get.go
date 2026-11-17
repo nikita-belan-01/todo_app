@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/google/uuid"
 	"github.com/nikita-belan-01/todo_app/internal/core/domain"
 	"github.com/nikita-belan-01/todo_app/internal/core/repository/postgres/utils"
 )
@@ -21,19 +20,19 @@ func (r StatisticsRepository) GetTasksCompletionParams(ctx context.Context, stat
 	var args []any
 	var conditions []string
 
-	if statisticsFilter.UserID != uuid.Nil {
-		args = append(args, statisticsFilter.UserID)
-		conditions = append(conditions, fmt.Sprintf("user_id=$%d", len(args)))
+	if statisticsFilter.UserID != nil {
+		args = append(args, *statisticsFilter.UserID)
+		conditions = append(conditions, fmt.Sprintf("user_id = $%d", len(args)))
 	}
 
 	if statisticsFilter.From != nil {
-		args = append(args, statisticsFilter.From)
-		conditions = append(conditions, fmt.Sprintf("created_at>=$%d", len(args)))
+		args = append(args, *statisticsFilter.From)
+		conditions = append(conditions, fmt.Sprintf("created_at >= $%d", len(args)))
 	}
 
 	if statisticsFilter.To != nil {
-		args = append(args, statisticsFilter.To)
-		conditions = append(conditions, fmt.Sprintf("created_at<$%d", len(args)))
+		args = append(args, *statisticsFilter.To)
+		conditions = append(conditions, fmt.Sprintf("created_at < $%d::timestamptz + interval '1 day'", len(args)))
 	}
 
 	if len(conditions) > 0 {

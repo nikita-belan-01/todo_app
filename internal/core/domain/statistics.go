@@ -7,7 +7,7 @@ import (
 )
 
 type StatisticsFilter struct {
-	UserID uuid.UUID
+	UserID *uuid.UUID
 	From   *time.Time
 	To     *time.Time
 }
@@ -15,7 +15,11 @@ type StatisticsFilter struct {
 func (f StatisticsFilter) Validate() error {
 	var v Validation
 
-	if f.From != nil && f.To != nil && f.To.Compare(*f.From) <= 0 {
+	if f.UserID != nil && *f.UserID == uuid.Nil {
+		v.AddWithCause("user_id", ErrUserIDIsNull, "must not be empty")
+	}
+
+	if f.From != nil && f.To != nil && f.To.Before(*f.From) {
 		v.AddWithCause("to", ErrInvalidDateRange, "must not be earlier than from")
 	}
 
