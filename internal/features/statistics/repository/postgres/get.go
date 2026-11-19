@@ -31,8 +31,8 @@ func (r StatisticsRepository) GetTasksCompletionParams(ctx context.Context, stat
 	}
 
 	if statisticsFilter.To != nil {
-		args = append(args, *statisticsFilter.To)
-		conditions = append(conditions, fmt.Sprintf("created_at < $%d::timestamptz + interval '1 day'", len(args)))
+		args = append(args, statisticsFilter.To.AddDate(0, 0, 1))
+		conditions = append(conditions, fmt.Sprintf("created_at < $%d", len(args)))
 	}
 
 	if len(conditions) > 0 {
