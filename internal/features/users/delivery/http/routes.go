@@ -11,6 +11,8 @@ import (
 	"github.com/nikita-belan-01/todo_app/internal/core/domain"
 )
 
+const userIDPathKey = "user_id"
+
 type UsersHTTPHandler struct {
 	config       *config.Handler
 	usersService UsersService
@@ -46,17 +48,17 @@ func (h *UsersHTTPHandler) Routes() []server.Route {
 		},
 		{
 			Method:  http.MethodGet,
-			Path:    fmt.Sprintf("%s/{userId}", usersPath),
+			Path:    fmt.Sprintf("%s/{%s}", usersPath, userIDPathKey),
 			Handler: h.GetUser,
 		},
 		{
 			Method:  http.MethodDelete,
-			Path:    fmt.Sprintf("%s/{userId}", usersPath),
+			Path:    fmt.Sprintf("%s/{%s}", usersPath, userIDPathKey),
 			Handler: h.DeleteUser,
 		},
 		{
 			Method:  http.MethodPatch,
-			Path:    fmt.Sprintf("%s/{userId}", usersPath),
+			Path:    fmt.Sprintf("%s/{%s}", usersPath, userIDPathKey),
 			Handler: h.PatchUser,
 		}}
 }

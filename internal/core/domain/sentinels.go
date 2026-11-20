@@ -17,4 +17,5 @@ var (
 	ErrEmptyPatch               = errors.New("patch is empty")
 	ErrCompletedAtInconsistent  = errors.New("completed and completed_at are inconsistent")
 	ErrInvalidPagination        = errors.New("invalid pagination")
+	ErrInvalidDateRange         = errors.New("invalid date range")
 )

@@ -11,8 +11,6 @@ import (
 	"github.com/nikita-belan-01/todo_app/pkg/strutil"
 )
 
-const taskIDPathKey = "taskId"
-
 type createTaskRequest struct {
 	UserID      string  `json:"user_id"`
 	Title       string  `json:"title"`

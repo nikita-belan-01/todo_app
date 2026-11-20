@@ -6,8 +6,6 @@ import (
 	"github.com/nikita-belan-01/todo_app/internal/core/domain"
 )
 
-const userIDPathKey = "userId"
-
 type createUserRequest struct {
 	Name        string `json:"name"`
 	Surname     string `json:"surname"`
@@ -39,7 +37,7 @@ type userPatchResponse struct {
 	Version int       `json:"version"`
 }
 
-func BuildUserResponse(user *domain.User) userResponse {
+func buildUserResponse(user *domain.User) userResponse {
 	return userResponse{
 		ID:          user.ID,
 		Name:        user.Name,
@@ -49,10 +47,10 @@ func BuildUserResponse(user *domain.User) userResponse {
 	}
 }
 
-func BuildUsersResponse(users []domain.User) []userResponse {
+func buildUsersResponse(users []domain.User) []userResponse {
 	response := make([]userResponse, 0, len(users))
 	for _, user := range users {
-		response = append(response, BuildUserResponse(&user))
+		response = append(response, buildUserResponse(&user))
 	}
 
 	return response

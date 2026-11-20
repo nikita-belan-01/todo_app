@@ -6,9 +6,13 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
+	"github.com/nikita-belan-01/todo_app/internal/core/domain"
 )
 
-var ErrEmptyPathValue = errors.New("empty path value")
+var (
+	ErrEmptyPathValue   = errors.New("empty path value")
+	ErrInvalidPathValue = errors.New("invalid path value")
+)
 
 func GetUUIDPathValue(r *http.Request, key string) (uuid.UUID, error) {
 	pathValue := r.PathValue(key)
@@ -18,7 +22,11 @@ func GetUUIDPathValue(r *http.Request, key string) (uuid.UUID, error) {
 
 	id, err := uuid.Parse(pathValue)
 	if err != nil {
-		return uuid.Nil, fmt.Errorf("key=%q in path values: %w", key, err)
+		return uuid.Nil, domain.NewFieldError(
+			domain.KindInvalidArgument,
+			key,
+			"invalid format, expected a uuid",
+			fmt.Errorf("%w: %w", ErrInvalidPathValue, err))
 	}
 
 	return id, err

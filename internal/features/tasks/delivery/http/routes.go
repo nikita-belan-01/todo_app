@@ -11,6 +11,8 @@ import (
 	"github.com/nikita-belan-01/todo_app/internal/core/domain"
 )
 
+const taskIDPathKey = "task_id"
+
 type TasksHTTPHandler struct {
 	config       *config.Handler
 	tasksService TasksService
@@ -46,16 +48,16 @@ func (h *TasksHTTPHandler) Routes() []server.Route {
 		},
 		{
 			Method:  http.MethodGet,
-			Path:    fmt.Sprintf("%s/{taskId}", tasksPath),
+			Path:    fmt.Sprintf("%s/{%s}", tasksPath, taskIDPathKey),
 			Handler: h.GetTask,
 		},
 		{
 			Method:  http.MethodDelete,
-			Path:    fmt.Sprintf("%s/{taskId}", tasksPath),
+			Path:    fmt.Sprintf("%s/{%s}", tasksPath, taskIDPathKey),
 			Handler: h.DeleteTask,
 		}, {
 			Method:  http.MethodPatch,
-			Path:    fmt.Sprintf("%s/{taskId}", tasksPath),
+			Path:    fmt.Sprintf("%s/{%s}", tasksPath, taskIDPathKey),
 			Handler: h.PatchTask,
 		}}
 }
